@@ -1,0 +1,8 @@
+{
+  "REMINDERS":[
+    {"LAT":31.143167,"LNG":121.499383,"TASK_DESC":"凌兆路428弄"},
+    {"LAT":31.388240,"LNG":121.369555,"TASK_DESC":"东太东路885号2幢"},
+    {"LAT":30.5,"LNG":122.7,"TASK_DESC":"Working3"}
+  ],
+  "TO_STRING":"reminder list for load"
+}

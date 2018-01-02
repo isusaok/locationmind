@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">location mind</string>
+    <string name="btn1">开始地理围栏服务</string>
+    <string name="btn2">停止地理围栏服务</string>
+    <string name="title_activity_map">MapActivity</string>
+
+    <!--Main Activity 字符串资源 -->
+    <string name="Update_service">更新所有</string>
+    <string name="stop_service">停止服务</string>
+    <string name="other_service">其他服务</string>
+
+
+    <!--Add Reminder Activity 字符串资源 -->
+    <string name="TextView_task_tip">请输入任务</string>
+    <string name="TextView_location_tip">请输入地点</string>
+    <string name="checkbox_in">进入</string>
+    <string name="checkbox_out">离开</string>
+    <string name="checkbox_stay">停留</string>
+    <string name="button_back">取消</string>
+    <string name="button_add">保存</string>
+    <string name="search_hint_location">请输入地点名称</string>
+
+    <!--Add Reminder Activity 字符串资源 -->
+    <string name="TextView_add_location">添加当前地点</string>
+
+
+
+</resources>
