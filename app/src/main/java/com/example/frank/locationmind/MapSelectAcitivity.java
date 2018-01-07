@@ -88,7 +88,6 @@ public class MapSelectAcitivity extends AppCompatActivity
     //POI search
     protected PoiSearch.Query mPoiQ;
     protected PoiSearch mPoiS;
-    protected boolean isPoiSearchFromCameraChange = true;
 
     ArrayList<String> listForView = new ArrayList<String>();
     ArrayList<LatLonPoint> listOfLatLngPoint = new ArrayList<LatLonPoint>();
@@ -228,6 +227,7 @@ public class MapSelectAcitivity extends AppCompatActivity
         mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Log.i("ITEMCLICK",Double.toString(listOfLatLngPoint.get(position).getLatitude()));
                 moveCameraToLocation(new LatLng(listOfLatLngPoint.get(position).getLatitude(),listOfLatLngPoint.get(position).getLongitude()),16);
             }
         });
@@ -320,7 +320,6 @@ public class MapSelectAcitivity extends AppCompatActivity
 
         mPoiS = new PoiSearch(MapSelectAcitivity.this,mPoiQ);
         mPoiS.setOnPoiSearchListener(MapSelectAcitivity.this);
-        isPoiSearchFromCameraChange = false;
         mPoiS.searchPOIAsyn();
     }
 
@@ -432,14 +431,10 @@ public class MapSelectAcitivity extends AppCompatActivity
         listForView.clear();
         listOfLatLngPoint.clear();
         PoiResultToList(poiResult);
+        Log.i("ONSEARCHED",Integer.toString(listForView.size()));
+        Log.i("ONSEARCHED",poiResult.getQuery().getQueryString());
         mAddLocationText.setText(listForView.get(0));
         mArrayAdapter.notifyDataSetChanged();
-        if(!isPoiSearchFromCameraChange) {
-            moveCameraToLocation(new LatLng(listOfLatLngPoint.get(0).getLatitude(),
-                    listOfLatLngPoint.get(0).getLongitude()),
-                    15);
-            isPoiSearchFromCameraChange =true;
-        }
     }
 
     private void PoiResultToList(PoiResult poiResult){
@@ -476,13 +471,10 @@ public class MapSelectAcitivity extends AppCompatActivity
         centerLat = cameraPosition.target.latitude;
         centerLng = cameraPosition.target.longitude;
         final Marker marker = mAmap.addMarker(new MarkerOptions().position(new LatLng(centerLat,centerLng)).title("当前地点").snippet("DefaultMarker"));
-
-        if(isPoiSearchFromCameraChange){//Poi搜索来自视角改变
-            listForView.clear();
-            listOfLatLngPoint.clear();
-            mPoiS.setBound(new PoiSearch.SearchBound(new LatLonPoint(centerLat,centerLng),1000));
-            mPoiS.searchPOIAsyn();
-        }
+        listForView.clear();
+        listOfLatLngPoint.clear();
+        mPoiS.setBound(new PoiSearch.SearchBound(new LatLonPoint(centerLat,centerLng),1000));
+        mPoiS.searchPOIAsyn();
     }
 
     @Override
