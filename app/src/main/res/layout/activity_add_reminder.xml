@@ -13,6 +13,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
+        android:scaleType="centerCrop"
         app:layout_constraintDimensionRatio="1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -72,20 +73,18 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:layout_marginTop="52dp"
-        android:text="Button"
+        android:text="@string/button_back"
         app:layout_constraintEnd_toStartOf="@+id/guideline"
-        app:layout_constraintTop_toBottomOf="@+id/checkBox_IN"
-        tools:text="@string/button_back" />
+        app:layout_constraintTop_toBottomOf="@+id/checkBox_IN" />
 
     <Button
         android:id="@+id/button_SAVE"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:text="Button"
+        android:text="@string/button_add"
         app:layout_constraintStart_toStartOf="@+id/guideline"
-        app:layout_constraintTop_toTopOf="@+id/button_CANCEL"
-        tools:text="@string/button_add" />
+        app:layout_constraintTop_toTopOf="@+id/button_CANCEL" />
 
     <android.support.constraint.Guideline
         android:id="@+id/guideline"

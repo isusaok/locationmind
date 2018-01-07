@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Environment;
@@ -19,14 +20,21 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 
+import com.chad.library.adapter.base.BaseItemDraggableAdapter;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
+import com.chad.library.adapter.base.callback.ItemDragAndSwipeCallback;
+import com.chad.library.adapter.base.listener.OnItemDragListener;
+import com.chad.library.adapter.base.listener.OnItemSwipeListener;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -43,6 +51,8 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,18 +65,13 @@ public class MainActivity extends AppCompatActivity {
     private @Nullable ArrayList<Reminder> reminderList = new ArrayList<Reminder>();
 
     private RecyclerView mRecyclerView;
-    private FloatingActionButton fabAdd,fabupdate;
+    private FloatingActionButton fabAdd;
     private Toolbar toolbar;
 
     private LocalBroadcastManager localBroadcastManager;
     private StopGeoFenceReceiver mStopGeoFenceRCV;
 
     MyQuickAdapter myAdapter;
-
-
-    //返回按钮监听
-
-
 
     @Nullable
     public List<Reminder> getReminderList() {
@@ -80,29 +85,27 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setServiceManageStopped(false);
-        //recyclerView setup
+        File MapViewDir = new File(getFilesDir()+"/MapAvatar");
+        MapViewDir.mkdir();//自建目录
+
         mRecyclerView = (RecyclerView)findViewById(R.id.RCV_MAIN);
 
         //floating Action button setup
         fabAdd = (FloatingActionButton)findViewById(R.id.FAB_MAIN);
-        fabupdate =(FloatingActionButton)findViewById(R.id.FAB1_MAIN);
 
         fabAdd.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //增加提醒按钮
+                Reminder rd = new Reminder();
+                rd.lat=rd.lng=1080;
+                Bundle bd = new Bundle();
+                Log.i("1_fabADD",rd.toString());
+                bd.putParcelable("REMINDER",rd);
                 Intent intentToAddReminderPage = new Intent(MainActivity.this, AddReminderActivity.class);
+                intentToAddReminderPage.putExtras(bd);
+                intentToAddReminderPage.setAction("com.example.frank.locationmind.add.new");
                 startActivityForResult(intentToAddReminderPage,1500);
-            }
-        });
-
-        fabupdate.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String tempStr =isMyServiceRunning(MainActivity.this,com.example.frank.locationmind.GeoFenceService.class)?"OK":"FAIL";
-                Log.i("通过Main启动",tempStr);
-                Intent intentToService = new Intent(MainActivity.this,GeoFenceService.class);
-                startService(intentToService);
             }
         });
 
@@ -121,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
                                                            }
                                                            break;
                                                        case R.id.UPDATE_MENU:
+                                                           writeListIntoFile(dataFileURI,reminderList);
                                                            break;
                                                        case R.id.OTHER_MENU:
                                                            if(isMyServiceRunning(MainActivity.this, com.example.frank.locationmind.GeoFenceService.class)){
@@ -136,12 +140,74 @@ public class MainActivity extends AppCompatActivity {
                                            }
         );
 
+        reminderList = readListFromFile(dataFileURI);
+        Log.i("after read",reminderList.toString());
+
         //设置适配器
         myAdapter = new MyQuickAdapter(R.layout.cardlayout,reminderList);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecyclerView.setAdapter(myAdapter);
         mRecyclerView.addItemDecoration(new SimplePaddingDecoration(this));
 
+        //滑动删除与拖曳排序
+        ItemDragAndSwipeCallback itemDragAndSwipeCallback = new ItemDragAndSwipeCallback(myAdapter);
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(itemDragAndSwipeCallback);
+        itemTouchHelper.attachToRecyclerView(mRecyclerView);
+
+        OnItemDragListener onItemDragListener = new OnItemDragListener() {
+            @Override
+            public void onItemDragStart(RecyclerView.ViewHolder viewHolder, int pos){}
+            @Override
+            public void onItemDragMoving(RecyclerView.ViewHolder source, int from, RecyclerView.ViewHolder target, int to) {}
+            @Override
+            public void onItemDragEnd(RecyclerView.ViewHolder viewHolder, int pos) {}
+        };
+
+        OnItemSwipeListener onItemSwipeListener = new OnItemSwipeListener() {
+            @Override
+            public void onItemSwipeStart(RecyclerView.ViewHolder viewHolder, int pos) {}
+            @Override
+            public void clearView(RecyclerView.ViewHolder viewHolder, int pos) {}
+            @Override
+            public void onItemSwiped(RecyclerView.ViewHolder viewHolder, int pos) {
+                String AFP = reminderList.get(pos).getThumbernailFile();
+                if (null!=AFP){
+                    File  file = new File(AFP);
+                    file.delete();
+                    if(file.exists()) Log.i("DELETE","删除文件失败");
+                }
+            }
+
+            @Override
+            public void onItemSwipeMoving(Canvas canvas, RecyclerView.ViewHolder viewHolder, float dX, float dY, boolean isCurrentlyActive) {
+
+            }
+        };
+
+        // open drag
+        myAdapter.enableDragItem(itemTouchHelper, R.id.imageView, true);
+        myAdapter.setOnItemDragListener(onItemDragListener);
+
+        // open slide to delete
+        myAdapter.enableSwipeItem();
+        myAdapter.setOnItemSwipeListener(onItemSwipeListener);
+        //滑动删除与拖曳排序
+
+        myAdapter.setOnItemClickListener(new MyQuickAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(BaseQuickAdapter adapter, View view, int position) {
+                Log.d("item click", "onItemClick: ");
+                Reminder rd = reminderList.get(position);
+                Bundle bd = new Bundle();
+                bd.putParcelable("REMINDER",rd);
+                Intent it = new Intent(MainActivity.this,AddReminderActivity.class);
+                it.setAction("com.example.frank.locationmind.update.reminder");
+                it.putExtras(bd);
+                startActivityForResult(it,1590);
+            }
+        });
+
+        /*
         //copy reminders.json from external storage Download dir to internal storage
         String o = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)+"/reminders.json";
         String n = getFilesDir()+"/reminders.json";
@@ -149,7 +215,13 @@ public class MainActivity extends AppCompatActivity {
         Log.i("file to",n);
         copyFileAn(o,n);
 
-        //load data from reminders.json
+
+        if(reminderList.size()<1){
+            Log.i("after read","还是需要json文件");
+            initReminderListFromJSONFILE("reminders.json");
+        }
+        */
+        /*load data from reminders.json
         boolean jsaonFileLoaded = initReminderListFromJSONFILE("reminders.json");
         if (!jsaonFileLoaded){
             //if failed, load from asset file
@@ -160,8 +232,8 @@ public class MainActivity extends AppCompatActivity {
         //setup data for Adapter
 
 
-        writeListIntoFile("HELLO",reminderList);
-        setServieNeedUpdated(true);
+        writeListIntoFile("HELLO",reminderList);*/
+        setServiceNeedUpdated(true);
 
         localBroadcastManager= LocalBroadcastManager.getInstance(this);
 
@@ -169,6 +241,7 @@ public class MainActivity extends AppCompatActivity {
         localBroadcastManager.registerReceiver(mStopGeoFenceRCV,new IntentFilter("com.example.frank.locationmind.stop.servie"));
         updateService();
         setUpSchedule();
+        Log.i("MAIN", Integer.toString(this.fileList().length));
     }
 
     //载入菜单项
@@ -211,47 +284,24 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (resultCode){
             case 2501:
-                Reminder rf =new Reminder(data.getDoubleExtra("LAT",0),data.getDoubleExtra("LNG",0),data.getStringExtra("TASK"));
+                Reminder rf = (Reminder)data.getExtras().getParcelable("REMINDER");
                 reminderList.add(rf);
                 myAdapter.notifyDataSetChanged();
+                writeListIntoFile(dataFileURI,reminderList);
+                Intent intentToService = new Intent(MainActivity.this, GeoFenceService.class);
+                intentToService.putExtra("FROM","NEW PLACE");
+                startService(intentToService);
         }
         super.onActivityResult(requestCode, resultCode, data);
 
-    }
-
-    private void testReadAndWriteList(){
-        /*
-        ArrayList<Double> testList = new ArrayList<>();
-        for (int i=0;i<10;i++) {
-            testList.add(new Double(i));
-        }
-
-        String filePath = "HELLO";
-        Log.i("save double","存入文件"+testList.size());
-
-        writeListIntoFile(filePath,testList);
-        testList.clear();
-        Log.i("clear list","清空列表"+testList.size());
-        testList = readDoubleListFromFile(filePath);
-        Log.i("read list","读取列表"+testList.size());
-        /*/
-        Log.i("before clear","存入文件之前，reminderlist大小为"+reminderList.size());
-        writeListIntoFile("HELLO",reminderList);
-        reminderList.clear();
-        Log.i("after clear","清空list，reminderlist大小为"+reminderList.size());
-        ArrayList<Reminder> rx = readListFromFile("HELLO");
-        Log.i("after read","从文件载入，reminderlist大小为"+rx.size());
-
-        for(Reminder x:rx){
-            Log.i("TASKx",x.getTaskDescription());
-        }
     }
 
     //对象数组存入文件
     public void writeListIntoFile(String fileName,ArrayList stus){
         ObjectOutputStream oos;
         try {
-            oos = new ObjectOutputStream( new BufferedOutputStream(openFileOutput(fileName,Context.MODE_PRIVATE)));
+            FileOutputStream fos = openFileOutput(fileName,Context.MODE_PRIVATE);
+            oos = new ObjectOutputStream( new BufferedOutputStream(fos));
             oos.writeObject(stus);
             oos.flush();
             oos.close();
@@ -294,8 +344,9 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    //设置是否需要重启服务更新
-    private void setServieNeedUpdated(boolean needRestart){
+
+        //设置是否需要重启服务更新
+    private void setServiceNeedUpdated(boolean needRestart){
         SharedPreferences mSharedPreferences = getSharedPreferences("REMINDER_LIST_STATES", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor= mSharedPreferences.edit();
         editor.putBoolean("SERVICE_NEED_REBOOT",needRestart);
@@ -396,19 +447,36 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         localBroadcastManager.unregisterReceiver(mStopGeoFenceRCV);
+        //writeListIntoFile(dataFileURI, reminderList);
     }
 
-    public class MyQuickAdapter extends BaseQuickAdapter<Reminder,BaseViewHolder>{
+    @Override
+    protected void onStop() {
+        super.onStop();
+        writeListIntoFile(dataFileURI,reminderList);
+    }
+
+    public class MyQuickAdapter extends BaseItemDraggableAdapter<Reminder,BaseViewHolder> {
 
         public MyQuickAdapter(int layoutResId, @Nullable List<Reminder> data) {
             super(layoutResId, data);
         }
 
         @Override
-        protected void convert(BaseViewHolder helper, Reminder item) {
+        protected void convert(BaseViewHolder helper, final Reminder item) {
             helper.setText(R.id.textView,item.getTaskDescription());
             helper.setChecked(R.id.checkBox,item.isWorking());
-            helper.setImageDrawable(R.id.imageView,getDrawable(R.color.colorPrimaryDark));
+            helper.setImageDrawable(R.id.imageView,Drawable.createFromPath(item.thumbernailFile));
+            BaseViewHolder baseViewHolder = helper.setOnCheckedChangeListener(R.id.checkBox, new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    item.working = isChecked;
+                    CheckBox presentCheck = (CheckBox)(buttonView);
+                    boolean checked =presentCheck.isChecked();
+                    String a = checked?"正在运行":"已停止";
+                    presentCheck.setText(a);
+                }
+            });
         }
 
     }
@@ -466,6 +534,8 @@ public class MainActivity extends AppCompatActivity {
 
         }
     }
+
+
 
 
     public boolean saveReminderListToSharePreference(ArrayList<Reminder> rl){

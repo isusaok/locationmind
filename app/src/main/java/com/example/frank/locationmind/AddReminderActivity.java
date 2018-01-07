@@ -19,21 +19,29 @@ import android.widget.ImageView;
 
 import com.amap.api.location.DPoint;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.util.EnumSet;
+
 public class AddReminderActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener {
 
-
+    //控件
     private EditText editText_location;
-    private String TaskDescription = "";
     private ImageView imageViewAvata;
 
     private CheckBox checkBoxIn;
     private CheckBox checkBoxOut;
     private CheckBox checkBoxStay;
 
-    private Button bt_back ;
+    private Button bt_back;
     private Button bt_save;
 
-    private DPoint currentCenterPoint = new DPoint();
+    //数据
+    private Double CCPointLat, CCPointLng;
+    private String TaskDescription = "";
+    private String avataFileName ="";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,12 +63,28 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
             @Override
             public void onClick(View v) {
                 Intent it2 = new Intent();
-                it2.putExtra("another",132);
-                it2.putExtra("LAT",currentCenterPoint.getLatitude());
-                it2.putExtra("LNG",currentCenterPoint.getLongitude());
-                it2.putExtra("TASK",TaskDescription);
-                AddReminderActivity.this.setResult(2501,it2);
-                AddReminderActivity.this.finish();
+                Bundle bd = new Bundle();
+                Reminder rd = createReminderFromCurrentForm();
+                Log.i("SAVE", rd.toString());
+                if(rd.isQualifiedReminder()) {//合格Reminder
+                    //copy avatar to MapAvatar dir
+                    final String From = getFilesDir() + "/" + avataFileName;//当前目录
+                    final String To = getFilesDir() + "/MapAvatar/" + Integer.toString(rd.hashCode()) + ".png";
+                    Log.i("SAVE ", To);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            copyFileAn(From, To);
+                            Log.i("SAVE", "移动文件到MapAvatar");
+                        }
+                    }).start();
+                    rd.thumbernailFile = To;
+                    rd.working = true;
+                    bd.putParcelable("REMINDER", rd);
+                    it2.putExtras(bd);
+                    AddReminderActivity.this.setResult(2501, it2);
+                    AddReminderActivity.this.finish();
+                }
             }
         });
 
@@ -68,18 +92,18 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
         editText_location.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                Log.i("Ansen","内容改变之前调用:"+s);
+                Log.i("Ansen","TEXTFIELD内容改变之前调用:"+s);
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                Log.i("Ansen","内容改变，可以去告诉服务器:"+s);
+                Log.i("Ansen","TEXTFIELD内容改变，可以去告诉服务器:"+s);
             }
 
             @Override
             public void afterTextChanged(Editable s) {
                 TaskDescription =s.toString();
-                Log.i("Ansen","内容改变之后调用:"+s);
+                Log.i("Ansen","TEXTFEILD内容改变之后调用:"+s);
             }
         });
 
@@ -88,9 +112,13 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
         imageViewAvata.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent it = new Intent(AddReminderActivity.this,MapSelectAcitivity.class);
-                it.putExtra("Source","110");
-                startActivityForResult(it,1510);
+                Reminder rd = createReminderFromCurrentForm();
+                Bundle bd = new Bundle();
+                bd.putParcelable("REMINDER",rd);
+                Intent intentToAddReminderPage = new Intent(AddReminderActivity.this,MapSelectAcitivity.class);
+                intentToAddReminderPage.putExtras(bd);
+                intentToAddReminderPage.setAction("com.example.frank.locationmind.map.clicked");
+                startActivityForResult(intentToAddReminderPage,1510);
             }
         });
 
@@ -101,6 +129,55 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
         checkBoxStay = (CheckBox)findViewById(R.id.checkBox_STAY);
         checkBoxStay.setOnCheckedChangeListener(this);
 
+        Intent it = getIntent();
+        setUpForm(it.getExtras());
+    }
+
+    //使用intent中的数据更新表单
+    private void setUpForm(Bundle bd) {
+        Reminder rd = (Reminder) bd.getParcelable("REMINDER");
+        Log.i("2_SetUpForm", rd.toString());
+        //currentCenterPoint.setLatitude(rd.getLat());//Dpoint 自动转化成90，180
+        //currentCenterPoint.setLongitude(rd.getLng());
+        CCPointLat =rd.getLat();
+        CCPointLng =rd.getLng();
+
+
+        TaskDescription = rd.taskDescription;
+        editText_location.setText(TaskDescription);
+        imageViewAvata.setImageDrawable(rd.thumbernailFile!=null?Drawable.createFromPath(rd.thumbernailFile):getDrawable(R.drawable.add_map_default));
+
+        if (null != rd.ReminderType) {
+            Log.i("S", "通过点击已存在的项目进入ADD");
+            for (Reminder.LocationState s : rd.ReminderType) {
+                switch (s) {
+                    case GEO_IN_REMINDIE:
+                        checkBoxIn.setChecked(true);
+                        break;
+                    case GEO_OUT_REMINDIE:
+                        checkBoxOut.setChecked(true);
+                        break;
+                    case GEO_STAY_REMINDIE:
+                        checkBoxStay.setChecked(true);
+                        break;
+                }
+            }
+        }
+    }
+
+    private Reminder createReminderFromCurrentForm(){
+        Reminder rd = new Reminder();
+        rd.lat = CCPointLat;//currentCenterPoint.getLatitude();
+        rd.lng = CCPointLng;//currentCenterPoint.getLongitude();
+        rd.taskDescription = TaskDescription;
+        Log.i("3-1_CFromForm", rd.toString());
+        //需要初始化ReminderType,否则报空指针错误
+        rd.ReminderType = EnumSet.noneOf(Reminder.LocationState.class);
+        if (checkBoxIn.isChecked()) rd.ReminderType.add(Reminder.LocationState.GEO_IN_REMINDIE);
+        if (checkBoxOut.isChecked()) rd.ReminderType.add(Reminder.LocationState.GEO_OUT_REMINDIE);
+        if (checkBoxStay.isChecked()) rd.ReminderType.add(Reminder.LocationState.GEO_STAY_REMINDIE);
+        Log.i("3_CFromForm", rd.toString());
+        return rd;
     }
 
     @Override
@@ -114,9 +191,11 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
 
         switch (resultCode){
             case 2551:
-                currentCenterPoint.setLatitude(data.getDoubleExtra("LAT_CENTER", 0));
-                currentCenterPoint.setLongitude(data.getDoubleExtra("LNG_CENTER", 0));
-                imageViewAvata.setImageDrawable(Drawable.createFromPath(getFilesDir()+"/"+ data.getStringExtra("avaFile")));
+
+                CCPointLat = data.getDoubleExtra("LAT", 0);
+                CCPointLng = data.getDoubleExtra("LNG", 0);
+                avataFileName = data.getStringExtra("avaFile");
+                imageViewAvata.setImageDrawable(Drawable.createFromPath(getFilesDir()+"/"+ avataFileName));
         }
         if (null!=data) {
 
@@ -125,4 +204,32 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
 
         super.onActivityResult(requestCode, resultCode, data);
     }
+
+    public void copyFileAn(String oldPath, String newPath) {
+        try {
+            int byteSum = 0;
+            int byteRead = 0;
+            File oldFile = new File(oldPath);
+            if (oldFile.exists()) { //文件存在时
+                InputStream inStream = new FileInputStream(oldPath); //读入原文件
+                FileOutputStream fs = new FileOutputStream(newPath);//如果目录不存在要自己建目录
+                byte[] buffer = new byte[1444];
+                int length;
+                while ( (byteRead = inStream.read(buffer)) != -1) {
+                    byteSum += byteRead; //字节数 文件大小
+                    System.out.println(byteSum);
+                    fs.write(buffer, 0, byteRead);
+                }
+                inStream.close();
+                fs.close();
+                Log.i("COPY","复制文件"+newPath);
+            }
+        }
+        catch (Exception e) {
+            System.out.println("复制单个文件操作出错");
+            e.printStackTrace();
+
+        }
+    }
+
 }

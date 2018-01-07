@@ -11,14 +11,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.location.Location;
-import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.os.Parcelable;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
@@ -27,8 +24,6 @@ import com.amap.api.fence.GeoFence;
 import com.amap.api.fence.GeoFenceClient;
 import com.amap.api.fence.GeoFenceListener;
 import com.amap.api.location.AMapLocation;
-import com.amap.api.location.AMapLocationClient;
-import com.amap.api.location.AMapLocationClientOption;
 import com.amap.api.location.AMapLocationListener;
 import com.amap.api.location.DPoint;
 import com.amap.api.maps2d.AMapUtils;
@@ -48,7 +43,7 @@ import static java.lang.System.out;
 public class GeoFenceService extends Service
                                 implements GeoFenceListener, AMapLocationListener {
     private List<GeoFence> fenceList = new ArrayList<GeoFence>();
-    private ArrayList<Reminder> reminderArrayList =new ArrayList<Reminder>();
+    private ArrayList<Reminder> reminderList =new ArrayList<Reminder>();
     protected NotificationManager mNMgr;
     private  static final int NOTIFY_MSG = 000001;
 
@@ -57,8 +52,6 @@ public class GeoFenceService extends Service
     private static final String GEOFENCE_BROADCAST_ACTION = "com.example.frank.location.geofence";
     private static final String GEOFENCE_REBOOT_ACTION = "com.example.frank.location.reboot.service";
 
-    //private AMapLocationClient aMapLocationClient;
-    //private AMapLocationClientOption aMapLocationClientOption;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -76,43 +69,16 @@ public class GeoFenceService extends Service
         handler.sendMessage(msg);
         Log.i("start service","启动服务来自于"+som);
 
-        //设置定位
-        //configLocation();
-        //aMapLocationClient.startLocation();
-
         mNMgr = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
 
-        /*
-        Log.i("start service","开始");
-        mGeoFenceClient = new GeoFenceClient(getApplicationContext());
-        Log.i("start service","地理围栏客户端初始化成功");
-        //监听网络变化
-        IntentFilter itFilt = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
-        //增加监听地理围栏
-        itFilt.addAction(GEOFENCE_BROADCAST_ACTION);
-
-        //注册广播接受器，也可以在Androidmanifest中注册
-        registerReceiver(mGeoFenceReceiver,itFilt);
-
-        mGeoFenceClient.createPendingIntent(GEOFENCE_BROADCAST_ACTION);
-        mGeoFenceClient.setGeoFenceListener(this);
-        mGeoFenceClient.setActivateAction(GeoFenceClient.GEOFENCE_IN|GeoFenceClient.GEOFENCE_OUT|GeoFenceClient.GEOFENCE_STAYED);
-        */
 
         //从文件中获取现有reminder list
-        reminderArrayList = readListFromFile("HELLO");
-        Log.i("start service","inten接受数组的大小"+Integer.toString(reminderArrayList.size()));
-        //创建GeoFence
+        reminderList = readListFromFile("HELLO");
+        Log.i("start service","inten接受数组的大小"+Integer.toString(reminderList.size()));
 
-        /*
-        creatGeoFenceFromList(reminderArrayList);
-         */
+        //创建GeoFence
         setUpGeoFence();
 
-        /*
-        if(!isServiceManageStopped())
-            setAlarmForService(5);//start location in
-        */
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -128,50 +94,93 @@ public class GeoFenceService extends Service
 
         //注册广播接受器，也可以在Androidmanifest中注册
         registerReceiver(mGeoFenceReceiver,itFilt);
-
         mGeoFenceClient.createPendingIntent(GEOFENCE_BROADCAST_ACTION);
         mGeoFenceClient.setGeoFenceListener(this);
         mGeoFenceClient.setActivateAction(GeoFenceClient.GEOFENCE_IN|GeoFenceClient.GEOFENCE_OUT|GeoFenceClient.GEOFENCE_STAYED);
-
-        creatGeoFenceFromList(reminderArrayList);
-
+        createGeoFenceFromList(reminderList);
     }
 
-    /*
-    private  void configLocation(){
-        aMapLocationClient = new AMapLocationClient(GeoFenceService.this);
-        aMapLocationClientOption = new AMapLocationClientOption();
-        aMapLocationClient.setLocationListener(this);
 
-        aMapLocationClientOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
-        //设置定位间隔,单位毫秒,默认为2000ms
-        aMapLocationClientOption.setInterval(5000);
-        //设置定位参数
-        aMapLocationClient.setLocationOption(aMapLocationClientOption);
-        // 此方法为每隔固定时间会发起一次定位请求，为了减少电量消耗或网络流量消耗，
-        // 注意设置合适的定位时间的间隔（最小间隔支持为1000ms），并且在合适时间调用stopLocation()方法来取消定位请求
-        // 在定位结束后，在合适的生命周期调用onDestroy()方法
-        // 在单次定位情况下，定位无论成功与否，都无需调用stopLocation()方法移除请求，定位sdk内部会移除
-    }
-    */
-
-    private int getAlarmServiceTimeRang(){
-        return 1;
-    }
-
-    private void creatGeoFenceFromList(ArrayList<Reminder> ls){
+    private void createGeoFenceFromList(ArrayList<Reminder> ls){
         if (null != ls) {
-            for (Reminder re : ls) {
+            for (int i=0;i<ls.size();i++) {
+                Reminder re = ls.get(i);
+                Log.i("create fence",re.toString());
                 DPoint centPoint = new DPoint();
                 centPoint.setLatitude(re.getLat());
                 centPoint.setLongitude(re.getLng());
-                mGeoFenceClient.addGeoFence(centPoint, 500F, re.getTaskDescription());
+                String customeID = Integer.toString(i)+"_"+re.getTaskDescription();
+                mGeoFenceClient.addGeoFence(centPoint, 500F, customeID);
             }
             Log.i("create fence list","从list中加入围栏");
         }else{
             Log.i("create fence list","list为空，不加入围栏");
         }
     }
+
+    //围栏出发的消息接受方,直接在服务内部处理消息，发送通知
+    private BroadcastReceiver mGeoFenceReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.i("GeoFence RCV","广播接收到了");
+            // 接收广播
+            if (intent.getAction().equals(GEOFENCE_BROADCAST_ACTION)) {
+                Bundle bundle = intent.getExtras();
+                String customId = bundle
+                        .getString(GeoFence.BUNDLE_KEY_CUSTOMID);
+                //customerID to reminder
+                int a =0;
+                try {
+                    a = Integer.parseInt(customId.substring(0,customId.indexOf("_")));
+                    //Log.i("GeoFence RCV",Integer.toString(a));
+                } catch (NumberFormatException e) {
+                    e.printStackTrace();
+                }
+
+                Reminder currentReminder = reminderList.get(a);
+
+
+                String fenceId = bundle.getString(GeoFence.BUNDLE_KEY_FENCEID);
+                //status标识的是当前的围栏状态，不是围栏行为
+                int status = bundle.getInt(GeoFence.BUNDLE_KEY_FENCESTATUS);
+                StringBuffer sb = new StringBuffer();
+                switch (status) {
+                    case GeoFence.STATUS_LOCFAIL :
+                        sb.append("定位失败");
+                        break;
+                    case GeoFence.STATUS_IN :
+                        sb.append("进入围栏 ");
+                        sb.append(customId);
+                        if (currentReminder.ReminderType.contains(Reminder.LocationState.GEO_IN_REMINDIE))
+                            sendAnNotification(sb.toString());
+                        break;
+                    case GeoFence.STATUS_OUT :
+                        sb.append("离开围栏 ");
+                        sb.append(customId);
+                        if (currentReminder.ReminderType.contains(Reminder.LocationState.GEO_OUT_REMINDIE))
+                            sendAnNotification(sb.toString());
+                        break;
+                    case GeoFence.STATUS_STAYED :
+                        sb.append("停留在围栏内 ");
+                        sb.append(customId);
+                        if (currentReminder.ReminderType.contains(Reminder.LocationState.GEO_STAY_REMINDIE))
+                            sendAnNotification(sb.toString());
+                        break;
+                    default :
+                        break;
+                }
+                if(status != GeoFence.STATUS_LOCFAIL){
+                    sb.append(" fenceId: " + fenceId);
+                }
+                String str = sb.toString();
+                Message msg = Message.obtain();
+                msg.obj = str;
+                msg.what = 2;
+                handler.sendMessage(msg);
+            }
+        }
+    };
+
 
     public void setAlarmForService(int timeRangeInSeconds){
         AlarmManager manager = (AlarmManager) getSystemService(ALARM_SERVICE);
@@ -217,19 +226,19 @@ public class GeoFenceService extends Service
     Handler handler = new Handler() {
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case 0 :
+                case 0 ://围栏添加成功事件
                     StringBuilder sb = new StringBuilder();
                     sb.append("添加围栏成功");
                     String customId = (String)msg.obj;
                     Toast.makeText(getApplicationContext(), sb.toString(),
                             Toast.LENGTH_SHORT).show();
                     break;
-                case 1 :
+                case 1 ://围栏添加失败事件
                     int errorCode = msg.arg1;
                     Toast.makeText(getApplicationContext(),
                             "添加围栏失败 " + errorCode, Toast.LENGTH_SHORT).show();
                     break;
-                case 2 :
+                case 2 ://围栏触发事件
                     String statusStr = (String) msg.obj;
                     Toast.makeText(getApplicationContext(),
                             "围栏事件 " + statusStr, Toast.LENGTH_SHORT).show();
@@ -240,56 +249,10 @@ public class GeoFenceService extends Service
         }
     };
 
-    //围栏出发的消息接受方,直接在服务内部处理消息，发送通知
-    private BroadcastReceiver mGeoFenceReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.i("GeoFence RCV","广播接收到了");
-            // 接收广播
-            if (intent.getAction().equals(GEOFENCE_BROADCAST_ACTION)) {
-                Bundle bundle = intent.getExtras();
-                String customId = bundle
-                        .getString(GeoFence.BUNDLE_KEY_CUSTOMID);
-                String fenceId = bundle.getString(GeoFence.BUNDLE_KEY_FENCEID);
-                //status标识的是当前的围栏状态，不是围栏行为
-                int status = bundle.getInt(GeoFence.BUNDLE_KEY_FENCESTATUS);
-                StringBuffer sb = new StringBuffer();
-                switch (status) {
-                    case GeoFence.STATUS_LOCFAIL :
-                        sb.append("定位失败");
-                        break;
-                    case GeoFence.STATUS_IN :
-                        sb.append("进入围栏 ");
-                        sb.append(customId);
-                        sendAnNotification(sb.toString());
-                        break;
-                    case GeoFence.STATUS_OUT :
-                        sb.append("离开围栏 ");
-                        sb.append(customId);
-                        sendAnNotification(sb.toString());
-                        break;
-                    case GeoFence.STATUS_STAYED :
-                        sb.append("停留在围栏内 ");
-                        sb.append(customId);
-                        sendAnNotification(sb.toString());
-                        break;
-                    default :
-                        break;
-                }
-                if(status != GeoFence.STATUS_LOCFAIL){
-                    sb.append(" fenceId: " + fenceId);
-                }
-                String str = sb.toString();
-                Message msg = Message.obtain();
-                msg.obj = str;
-                msg.what = 2;
-                handler.sendMessage(msg);
-            }
-        }
-    };
 
-
-
+    private boolean checkGeoFence(){
+        return true;
+    }
 
     public void sendAnNotification(String str) {
         int NOTIFICATION_ID_LOCATION;
@@ -326,7 +289,7 @@ public class GeoFenceService extends Service
         //围栏清除
         fenceList.clear();
         //5分钟后重新启动
-        setAlarmForService(5);
+        //setAlarmForService(5);
         Toast.makeText(this, "服务已经停止", Toast.LENGTH_LONG).show();
     }
 
@@ -405,8 +368,8 @@ public class GeoFenceService extends Service
 
     private float distanceToNearestReminder(LatLng mLatLng){
         float minDistance = 1000000;
-        for (int i = 0;i<reminderArrayList.size();i++){
-            Reminder rd = reminderArrayList.get(i);
+        for (int i = 0;i<reminderList.size();i++){
+            Reminder rd = reminderList.get(i);
             float presentDistance = AMapUtils.calculateLineDistance(mLatLng,new LatLng(rd.getLat(),rd.getLng()));
             Log.i("onlocationcaculat","围栏"+Integer.toString(i)+"距离："+Float.toString(presentDistance));
             if (presentDistance < minDistance){

@@ -7,11 +7,15 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.amap.api.location.DPoint;
+import com.amap.api.services.core.LatLonPoint;
 import com.amap.api.services.core.PoiItem;
 import com.amap.api.services.poisearch.PoiResult;
 import com.amap.api.services.poisearch.PoiSearch;
@@ -26,10 +30,11 @@ public class SearchPoiActivity extends Activity
                                 implements PoiSearch.OnPoiSearchListener{
 
     private ArrayAdapter<String> mArrayAdapter;
-    private ArrayList<String> mListForResult;
-
+    private ArrayList<String> mListForResult = new ArrayList<String>();
+    private ArrayList<LatLonPoint> mListForResultPoiPoints = new ArrayList<LatLonPoint>();
     private ListView mListView;
     private TextView mtextView;
+
 
 
 
@@ -42,8 +47,34 @@ public class SearchPoiActivity extends Activity
         mtextView = (TextView)findViewById(R.id.empty);
 
         mArrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,mListForResult);
+        mListView.setAdapter(mArrayAdapter);
+        mListView.setEmptyView(mtextView);
+
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Reminder rd = createReminderFromPOI(mListForResultPoiPoints.get(position));
+                Bundle bd = new Bundle();
+                bd.putParcelable("REMINDER",rd);
+                Intent intentToAddReminderPage = new Intent(SearchPoiActivity.this,MapSelectAcitivity.class);
+                intentToAddReminderPage.putExtras(bd);
+                intentToAddReminderPage.setAction("com.example.frank.locationmind.poi.clicked");
+                Log.i("SEARCH_ITEM","");
+                startActivity(intentToAddReminderPage);
+
+            }
+        });
+
         handleIntent(getIntent());
         }
+
+
+    private Reminder createReminderFromPOI(LatLonPoint latlng){
+        Reminder rd = new Reminder();
+        rd.lat = latlng.getLatitude();
+        rd.lng = latlng.getLongitude();
+        return rd;
+    }
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -54,14 +85,16 @@ public class SearchPoiActivity extends Activity
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
+            Log.i("HANDLEINTENT",query);
             doMySearch(query);
         }
     }
 
     public void doMySearch(String q){
+        Log.i("DOSEARCH",q);
         PoiSearch.Query mPoiQ;
         PoiSearch mPoiS;
-        mPoiQ = new PoiSearch.Query("","","021");
+        mPoiQ = new PoiSearch.Query(q,"","021");
         mPoiQ.setPageSize(10);
         mPoiQ.setPageNum(1);
 
@@ -73,7 +106,11 @@ public class SearchPoiActivity extends Activity
 
     @Override
     public void onPoiSearched(PoiResult poiResult, int i) {
-        mListForResult.clear();
+        Log.i("ONSEARCHED",Integer.toString(poiResult.getPois().size()));
+        if (mListForResult.size()>0){
+            mListForResult.clear();
+            mListForResultPoiPoints.clear();
+        }
         PoiResultToList(poiResult);
         mArrayAdapter.notifyDataSetChanged();
 
@@ -85,6 +122,7 @@ public class SearchPoiActivity extends Activity
         if(mList.size()>0){
             for (PoiItem poi :mList){
                 mListForResult.add(poi.getTitle());
+                mListForResultPoiPoints.add(poi.getLatLonPoint());
             }
         }else{
             Log.i("PoiSearch Result","error,no result");
