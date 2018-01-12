@@ -16,20 +16,31 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.SeekBar;
+import android.widget.TextView;
 
 import com.amap.api.location.DPoint;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.util.ArrayList;
 import java.util.EnumSet;
+
+import static java.lang.System.out;
 
 public class AddReminderActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener {
 
     //控件
     private EditText editText_location;
+    private EditText editText_Task;
     private ImageView imageViewAvata;
+    private SeekBar seekBar;
+    private TextView textView;
 
     private CheckBox checkBoxIn;
     private CheckBox checkBoxOut;
@@ -41,12 +52,121 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
     //数据
     private Double CCPointLat, CCPointLng;
     private String TaskDescription = "";
-    private String avataFileName ="";
+    private String avataFileName ="ava.png";
+    private String LocationDescription ="";
+    private double geoFenceDiameter;
+    private Reminder currentReminder;
 
+
+    private ArrayList<Reminder> reminderList;
+
+    private static final String dataFileURI = "HELLO";
+
+    public Reminder getCurrentReminder() {
+        if (currentReminder==null)
+            currentReminder = new Reminder();
+        return currentReminder;
+    }
+
+    public void setCurrentReminder(Reminder currentReminder) {
+        this.currentReminder = currentReminder;
+    }
+
+    public ArrayList<Reminder> getReminderList() {
+        if (reminderList==null)
+            reminderList = new ArrayList<Reminder>();
+        return reminderList;
+    }
+
+    public void setReminderList(ArrayList<Reminder> reminderList) {
+        this.reminderList = reminderList;
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_reminder);
+
+        imageViewAvata = (ImageView)findViewById(R.id.MAP_AVATA);
+        imageViewAvata.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Bundle bd = new Bundle();
+                bd.putParcelable("REMINDER",currentReminder);
+                Intent intentToAddReminderPage = new Intent(AddReminderActivity.this,MapSelectAcitivity.class);
+                intentToAddReminderPage.putExtras(bd);
+                intentToAddReminderPage.setAction("com.example.frank.locationmind.map.clicked");
+                startActivityForResult(intentToAddReminderPage,1510);
+            }
+        });
+
+        editText_location = (EditText)findViewById(R.id.editText_PLACE);
+        editText_location.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                Log.i("Ansen","TEXTFIELD内容改变之前调用:"+s);
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                Log.i("Ansen","TEXTFIELD内容改变，可以去告诉服务器:"+s);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                currentReminder.placeDescription =s.toString();
+                Log.i("Ansen","TEXTFEILD内容改变之后调用:"+s);
+            }
+        });
+
+        editText_Task =(EditText)findViewById(R.id.editText_TASK);
+        editText_Task.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                currentReminder.taskDescription =s.toString();
+            }
+        });
+
+        textView = (TextView)findViewById(R.id.textView_DIAMETER);
+
+        seekBar =(SeekBar)findViewById(R.id.seekBar_DIAMETER);
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                currentReminder.diameter= 500+(2500*(progress)/100);
+                textView.setText(Double.toString(currentReminder.diameter)+"米");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+
+            }
+        });
+
+
+
+        checkBoxIn = (CheckBox)findViewById(R.id.checkBox_IN);
+        checkBoxIn.setOnCheckedChangeListener(this);
+        checkBoxOut = (CheckBox)findViewById(R.id.checkBox_OUT);
+        checkBoxOut.setOnCheckedChangeListener(this);
+        checkBoxStay = (CheckBox)findViewById(R.id.checkBox_STAY);
+        checkBoxStay.setOnCheckedChangeListener(this);
+
         bt_back = (Button) findViewById(R.id.button_CANCEL);
         bt_back.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -64,23 +184,22 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
             public void onClick(View v) {
                 Intent it2 = new Intent();
                 Bundle bd = new Bundle();
-                Reminder rd = createReminderFromCurrentForm();
-                Log.i("SAVE", rd.toString());
-                if(rd.isQualifiedReminder()) {//合格Reminder
-                    //copy avatar to MapAvatar dir
-                    final String From = getFilesDir() + "/" + avataFileName;//当前目录
-                    final String To = getFilesDir() + "/MapAvatar/" + Integer.toString(rd.hashCode()) + ".png";
-                    Log.i("SAVE ", To);
+                //Log.i("BEFORE SAVE LAST ", reminderList.get(reminderList.size()-1).toString());
+                Log.i("SAVE AFTER CREATE", currentReminder.toString());
+                Log.i("ALL reminders",reminderList.toString());
+                if(currentReminder.isQualifiedReminder()&&(!isInReminderList(currentReminder,reminderList))) {//合格Reminder
+                    //copy avatar to MapAvatar dir From ABSPath,but don't know h
+                    final String From = currentReminder.thumbernailFile;//当前图片,ABSPath
+                    final String To = getFilesDir() + "/MapAvatar/" + Integer.toString(currentReminder.hashCodeExThumber()) + ".png";
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
                             copyFileAn(From, To);
-                            Log.i("SAVE", "移动文件到MapAvatar");
                         }
                     }).start();
-                    rd.thumbernailFile = To;
-                    rd.working = true;
-                    bd.putParcelable("REMINDER", rd);
+                    currentReminder.thumbernailFile = To;
+                    currentReminder.working = true;
+                    bd.putParcelable("REMINDER", currentReminder);
                     it2.putExtras(bd);
                     AddReminderActivity.this.setResult(2501, it2);
                     AddReminderActivity.this.finish();
@@ -88,68 +207,44 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
             }
         });
 
-        editText_location = (EditText)findViewById(R.id.editText_TASK);
-        editText_location.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                Log.i("Ansen","TEXTFIELD内容改变之前调用:"+s);
-            }
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                Log.i("Ansen","TEXTFIELD内容改变，可以去告诉服务器:"+s);
-            }
 
-            @Override
-            public void afterTextChanged(Editable s) {
-                TaskDescription =s.toString();
-                Log.i("Ansen","TEXTFEILD内容改变之后调用:"+s);
-            }
-        });
-
-        imageViewAvata = (ImageView)findViewById(R.id.MAP_AVATA);
-        imageViewAvata.setImageResource(R.color.cardview_dark_background);
-        imageViewAvata.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Reminder rd = createReminderFromCurrentForm();
-                Bundle bd = new Bundle();
-                bd.putParcelable("REMINDER",rd);
-                Intent intentToAddReminderPage = new Intent(AddReminderActivity.this,MapSelectAcitivity.class);
-                intentToAddReminderPage.putExtras(bd);
-                intentToAddReminderPage.setAction("com.example.frank.locationmind.map.clicked");
-                startActivityForResult(intentToAddReminderPage,1510);
-            }
-        });
-
-        checkBoxIn = (CheckBox)findViewById(R.id.checkBox_IN);
-        checkBoxIn.setOnCheckedChangeListener(this);
-        checkBoxOut = (CheckBox)findViewById(R.id.checkBox_OUT);
-        checkBoxOut.setOnCheckedChangeListener(this);
-        checkBoxStay = (CheckBox)findViewById(R.id.checkBox_STAY);
-        checkBoxStay.setOnCheckedChangeListener(this);
 
         Intent it = getIntent();
-        setUpForm(it.getExtras());
+        setUpFormA(it.getExtras());
+        loadRemindersFromFile(dataFileURI);
     }
 
-    //使用intent中的数据更新表单
-    private void setUpForm(Bundle bd) {
-        Reminder rd = (Reminder) bd.getParcelable("REMINDER");
-        Log.i("2_SetUpForm", rd.toString());
-        //currentCenterPoint.setLatitude(rd.getLat());//Dpoint 自动转化成90，180
-        //currentCenterPoint.setLongitude(rd.getLng());
-        CCPointLat =rd.getLat();
-        CCPointLng =rd.getLng();
+    private boolean isInReminderList(Reminder rd, ArrayList<Reminder> list){
+        for(Reminder trd:list){
+            if (rd.equals(trd)) return true;
+        }
+        return false;
+    }
 
+    private void setUpFormA(Bundle bd){
 
-        TaskDescription = rd.taskDescription;
-        editText_location.setText(TaskDescription);
-        imageViewAvata.setImageDrawable(rd.thumbernailFile!=null?Drawable.createFromPath(rd.thumbernailFile):getDrawable(R.drawable.add_map_default));
+        //TODO setup data
+        currentReminder = (Reminder) bd.getParcelable("REMINDER");
+        Log.i("2+1 SETUPFORM", currentReminder.toString());
 
-        if (null != rd.ReminderType) {
-            Log.i("S", "通过点击已存在的项目进入ADD");
-            for (Reminder.LocationState s : rd.ReminderType) {
+        //setup form
+
+        editText_Task.setText(currentReminder.taskDescription!=null?currentReminder.taskDescription:"");
+        editText_location.setText(currentReminder.placeDescription!=null?currentReminder.placeDescription:"");
+
+        textView.setText(Double.toString(currentReminder.diameter<500?500F:currentReminder.diameter)+"米");
+
+        int progress =(int)(((currentReminder.diameter-500)/2500)*100);
+        seekBar.setProgress(progress);
+        Log.i("2+2 SETUPFORM", currentReminder.toString());
+
+        imageViewAvata.setImageDrawable(currentReminder.thumbernailFile!=null?Drawable.createFromPath(currentReminder.thumbernailFile):getDrawable(R.drawable.add_map_default));
+
+        //注意，改变check的状态会变更
+        if (null != currentReminder.ReminderType) {
+            EnumSet<Reminder.LocationState> ls = currentReminder.ReminderType.clone();
+            for (Reminder.LocationState s : currentReminder.ReminderType) {
                 switch (s) {
                     case GEO_IN_REMINDIE:
                         checkBoxIn.setChecked(true);
@@ -160,29 +255,47 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
                     case GEO_STAY_REMINDIE:
                         checkBoxStay.setChecked(true);
                         break;
+                    default:
+                        break;
                 }
             }
+            currentReminder.ReminderType = ls;
         }
     }
 
-    private Reminder createReminderFromCurrentForm(){
-        Reminder rd = new Reminder();
-        rd.lat = CCPointLat;//currentCenterPoint.getLatitude();
-        rd.lng = CCPointLng;//currentCenterPoint.getLongitude();
-        rd.taskDescription = TaskDescription;
-        Log.i("3-1_CFromForm", rd.toString());
-        //需要初始化ReminderType,否则报空指针错误
-        rd.ReminderType = EnumSet.noneOf(Reminder.LocationState.class);
-        if (checkBoxIn.isChecked()) rd.ReminderType.add(Reminder.LocationState.GEO_IN_REMINDIE);
-        if (checkBoxOut.isChecked()) rd.ReminderType.add(Reminder.LocationState.GEO_OUT_REMINDIE);
-        if (checkBoxStay.isChecked()) rd.ReminderType.add(Reminder.LocationState.GEO_STAY_REMINDIE);
-        Log.i("3_CFromForm", rd.toString());
-        return rd;
-    }
+
 
     @Override
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        if(null==currentReminder.ReminderType)
+            currentReminder.ReminderType = EnumSet.noneOf(Reminder.LocationState.class);
 
+        switch (buttonView.getId()){
+            case R.id.checkBox_IN:
+                if (isChecked) {
+                    currentReminder.ReminderType.add(Reminder.LocationState.GEO_IN_REMINDIE);
+                }else {
+                    currentReminder.ReminderType.remove(Reminder.LocationState.GEO_IN_REMINDIE);
+                }
+                break;
+            case R.id.checkBox_OUT:
+                if (isChecked) {
+                    currentReminder.ReminderType.add(Reminder.LocationState.GEO_OUT_REMINDIE);
+                }else {
+                    currentReminder.ReminderType.remove(Reminder.LocationState.GEO_OUT_REMINDIE);
+                }
+                break;
+            case R.id.checkBox_STAY:
+                if (isChecked) {
+                    currentReminder.ReminderType.add(Reminder.LocationState.GEO_STAY_REMINDIE);
+                }else {
+                    currentReminder.ReminderType.remove(Reminder.LocationState.GEO_STAY_REMINDIE);
+                }
+                break;
+            default:
+                break;
+
+        }
     }
 
 
@@ -191,14 +304,10 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
 
         switch (resultCode){
             case 2551:
+                setUpFormA(data.getExtras());
 
-                CCPointLat = data.getDoubleExtra("LAT", 0);
-                CCPointLng = data.getDoubleExtra("LNG", 0);
-                avataFileName = data.getStringExtra("avaFile");
-                imageViewAvata.setImageDrawable(Drawable.createFromPath(getFilesDir()+"/"+ avataFileName));
         }
         if (null!=data) {
-
 
         }
 
@@ -222,14 +331,41 @@ public class AddReminderActivity extends AppCompatActivity implements CompoundBu
                 }
                 inStream.close();
                 fs.close();
-                Log.i("COPY","复制文件"+newPath);
+                Log.i("COPY","从"+oldPath+"复制到"+newPath);
             }
         }
         catch (Exception e) {
             System.out.println("复制单个文件操作出错");
             e.printStackTrace();
-
         }
+    }
+
+    private void loadRemindersFromFile(String fileName){
+        String ABSFilePath = getFilesDir()+"/"+fileName;
+        File file = new File(ABSFilePath);
+        if (file.exists()){//确认文件存在，否则报错？
+            reminderList = readListFromFile(dataFileURI);
+            Log.i("load all reminders",reminderList.toString());
+        }
+    }
+
+    //从文件读取数组
+    public <T> ArrayList<T> readListFromFile(String fileName){
+        ArrayList<T> arrayList = new ArrayList<>();
+        try {
+            ObjectInputStream ois = new ObjectInputStream( new BufferedInputStream(openFileInput(fileName )));
+            arrayList=(ArrayList<T>) ois.readObject();
+            ois.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } finally{
+            out.println( "读取成功!");
+        }
+        return arrayList;
     }
 
 }

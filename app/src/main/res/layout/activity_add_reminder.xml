@@ -29,9 +29,47 @@
         android:layout_marginTop="16dp"
         android:ems="10"
         android:inputType="textMultiLine"
+        android:hint="@string/TextView_task_tip"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/MAP_AVATA" />
+
+    <EditText
+        android:id="@+id/editText_PLACE"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"
+        android:ems="10"
+        android:inputType="textMultiLine"
+        android:hint="@string/TextView_location_tip"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/editText_TASK" />
+
+    <TextView
+        android:id="@+id/textView_DIAMETER"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="32dp"
+        android:text="@string/TextView_add_diameter"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/editText_PLACE" />
+
+    <SeekBar
+        android:id="@+id/seekBar_DIAMETER"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="32dp"
+        android:max="100"
+        android:progress="0"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/textView_DIAMETER"
+        app:layout_constraintTop_toBottomOf="@+id/editText_PLACE" />
 
     <CheckBox
         android:id="@+id/checkBox_IN"
@@ -41,7 +79,7 @@
         android:layout_marginTop="16dp"
         android:text="@string/checkbox_in"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/editText_TASK"
+        app:layout_constraintTop_toBottomOf="@+id/seekBar_DIAMETER"
         tools:text="@string/checkbox_in" />
 
     <CheckBox
@@ -72,7 +110,7 @@
         android:layout_width="84dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:layout_marginTop="52dp"
+        android:layout_marginTop="16dp"
         android:text="@string/button_back"
         app:layout_constraintEnd_toStartOf="@+id/guideline"
         app:layout_constraintTop_toBottomOf="@+id/checkBox_IN" />

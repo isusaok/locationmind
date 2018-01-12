@@ -35,6 +35,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import static com.amap.api.maps2d.AMapUtils.calculateLineDistance;
@@ -105,12 +107,14 @@ public class GeoFenceService extends Service
         if (null != ls) {
             for (int i=0;i<ls.size();i++) {
                 Reminder re = ls.get(i);
-                Log.i("create fence",re.toString());
-                DPoint centPoint = new DPoint();
-                centPoint.setLatitude(re.getLat());
-                centPoint.setLongitude(re.getLng());
-                String customeID = Integer.toString(i)+"_"+re.getTaskDescription();
-                mGeoFenceClient.addGeoFence(centPoint, 500F, customeID);
+                if (re.isWorking()){
+                    Log.i("create fence",re.toString());
+                    DPoint centPoint = new DPoint();
+                    centPoint.setLatitude(re.getLat());
+                    centPoint.setLongitude(re.getLng());
+                    String customeID = Integer.toString(i)+"_"+re.getTaskDescription();
+                    mGeoFenceClient.addGeoFence(centPoint, re.getDiameter()<500?500F:(float)re.getDiameter(), customeID);
+                }
             }
             Log.i("create fence list","从list中加入围栏");
         }else{
@@ -145,26 +149,39 @@ public class GeoFenceService extends Service
                 int status = bundle.getInt(GeoFence.BUNDLE_KEY_FENCESTATUS);
                 StringBuffer sb = new StringBuffer();
                 switch (status) {
-                    case GeoFence.STATUS_LOCFAIL :
+                    case GeoFence.STATUS_LOCFAIL:
                         sb.append("定位失败");
                         break;
-                    case GeoFence.STATUS_IN :
-                        sb.append("进入围栏 ");
-                        sb.append(customId);
-                        if (currentReminder.ReminderType.contains(Reminder.LocationState.GEO_IN_REMINDIE))
-                            sendAnNotification(sb.toString());
+                    case GeoFence.STATUS_IN:
+                        sb.append("进入围栏");
+                        sb.append(a);
+                        sb.append(":在");
+                        sb.append(currentReminder.getPlaceDescription());
+                        sb.append(currentReminder.getTaskDescription());
+                        //sb.append(customId);
+                        if (currentReminder.ReminderType.contains(Reminder.LocationState.GEO_IN_REMINDIE)) {
+                            sendAnNotification(sb.toString(),a);
+                        }
                         break;
-                    case GeoFence.STATUS_OUT :
+                    case GeoFence.STATUS_OUT:
                         sb.append("离开围栏 ");
-                        sb.append(customId);
-                        if (currentReminder.ReminderType.contains(Reminder.LocationState.GEO_OUT_REMINDIE))
-                            sendAnNotification(sb.toString());
+                        sb.append(a);
+                        sb.append(":在");
+                        sb.append(currentReminder.getPlaceDescription());
+                        sb.append(currentReminder.getTaskDescription());
+                        if (currentReminder.ReminderType.contains(Reminder.LocationState.GEO_OUT_REMINDIE)) {
+                            sendAnNotification(sb.toString(),a);
+                        }
                         break;
-                    case GeoFence.STATUS_STAYED :
+                    case GeoFence.STATUS_STAYED:
                         sb.append("停留在围栏内 ");
-                        sb.append(customId);
-                        if (currentReminder.ReminderType.contains(Reminder.LocationState.GEO_STAY_REMINDIE))
-                            sendAnNotification(sb.toString());
+                        sb.append(a);
+                        sb.append(":在");
+                        sb.append(currentReminder.getPlaceDescription());
+                        sb.append(currentReminder.getTaskDescription());
+                        if (currentReminder.ReminderType.contains(Reminder.LocationState.GEO_STAY_REMINDIE)){
+                            sendAnNotification(sb.toString(),a);
+                        }
                         break;
                     default :
                         break;
@@ -181,7 +198,7 @@ public class GeoFenceService extends Service
         }
     };
 
-
+    //Alarm Service
     public void setAlarmForService(int timeRangeInSeconds){
         AlarmManager manager = (AlarmManager) getSystemService(ALARM_SERVICE);
         int threeMins = 1000*60*timeRangeInSeconds; // 这是3分钟的毫秒数
@@ -239,9 +256,11 @@ public class GeoFenceService extends Service
                             "添加围栏失败 " + errorCode, Toast.LENGTH_SHORT).show();
                     break;
                 case 2 ://围栏触发事件
+                    /*
                     String statusStr = (String) msg.obj;
                     Toast.makeText(getApplicationContext(),
                             "围栏事件 " + statusStr, Toast.LENGTH_SHORT).show();
+                            */
                     break;
                 default :
                     break;
@@ -250,22 +269,23 @@ public class GeoFenceService extends Service
     };
 
 
-    private boolean checkGeoFence(){
-        return true;
-    }
 
-    public void sendAnNotification(String str) {
+    public void sendAnNotification(String str, int position) {
         int NOTIFICATION_ID_LOCATION;
         Notification.Builder builder = new Notification.Builder(this);
 
-        builder.setContentTitle("some messages");
-        builder.setContentText("content text"+str);
+        builder.setContentTitle("地理围栏");
+        builder.setContentText(str);
         builder.setSmallIcon(R.mipmap.ic_launcher);
         builder.setWhen(System.currentTimeMillis());
 
         Intent intent = new Intent(getBaseContext(),MainActivity.class);
-        PendingIntent pdin = PendingIntent.getActivity(getBaseContext(),0,intent,0);
+        intent.setAction("com.example.frank.location.notify.start");
+        intent.putExtra("NOTIFIED_ITEM",position);
+
+        PendingIntent pdin = PendingIntent.getActivity(getBaseContext(),0,intent,PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(pdin);
+        builder.setAutoCancel(true);
 
         Notification noti = builder.build();
         mNMgr.notify(NOTIFY_MSG,noti);
@@ -276,12 +296,6 @@ public class GeoFenceService extends Service
     @Override
     public void onDestroy() {
         super.onDestroy();
-        //定位服务清除
-        /*
-        if(null != aMapLocationClient){
-            aMapLocationClient.onDestroy();
-        }
-        */
         //地理围栏清除
         mGeoFenceClient.removeGeoFence();
         //围栏监听服务清除
@@ -333,29 +347,7 @@ public class GeoFenceService extends Service
     public void onLocationChanged(AMapLocation aMapLocation) {
         if(aMapLocation != null) {
             if (aMapLocation.getErrorCode() == 0){
-                /*
-                LatLng mLatlng = new LatLng(aMapLocation.getLatitude(),aMapLocation.getLongitude());
-                float mSpeed = aMapLocation.getSpeed();//m/s
-                Double maxSpeed = (mSpeed>8.3)?mSpeed:8.3;//8.3 automobile speed in city
 
-                double aaa = distanceToNearestReminder(mLatlng);
-                Double nextTime = aaa/maxSpeed;
-                Log.i("onlocationchanged", "围栏数量"+Integer.toString(fenceList.size()));
-
-                if (nextTime<10*60){ //离围栏很近
-                    Log.i("onlocationchanged", "距离很近");
-                    if (fenceList.size()<1) {
-                        setUpGeoFence();//设置围栏
-                    }
-                }else {//离围栏很远
-                    Log.i("onlocationchanged", "距离很远");
-
-                    if(null!=mGeoFenceClient){
-                       mGeoFenceClient.removeGeoFence();//删除围栏
-                        fenceList.clear();
-                    }
-                }
-                */
                 Log.i("onlocationchanged", "success");
             } else {
                 Log.e("AmapError","location Error, ErrCode:"
@@ -364,19 +356,6 @@ public class GeoFenceService extends Service
             }
         }
 
-    }
-
-    private float distanceToNearestReminder(LatLng mLatLng){
-        float minDistance = 1000000;
-        for (int i = 0;i<reminderList.size();i++){
-            Reminder rd = reminderList.get(i);
-            float presentDistance = AMapUtils.calculateLineDistance(mLatLng,new LatLng(rd.getLat(),rd.getLng()));
-            Log.i("onlocationcaculat","围栏"+Integer.toString(i)+"距离："+Float.toString(presentDistance));
-            if (presentDistance < minDistance){
-                minDistance = presentDistance;
-            }
-        }
-        return minDistance;
     }
 
 }

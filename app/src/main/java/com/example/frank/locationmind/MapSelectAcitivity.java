@@ -35,6 +35,10 @@ import com.amap.api.maps2d.model.MarkerOptions;
 import com.amap.api.maps2d.model.MyLocationStyle;
 import com.amap.api.services.core.LatLonPoint;
 import com.amap.api.services.core.PoiItem;
+import com.amap.api.services.geocoder.GeocodeResult;
+import com.amap.api.services.geocoder.GeocodeSearch;
+import com.amap.api.services.geocoder.RegeocodeQuery;
+import com.amap.api.services.geocoder.RegeocodeResult;
 import com.amap.api.services.poisearch.PoiResult;
 import com.amap.api.services.poisearch.PoiSearch;
 
@@ -49,7 +53,8 @@ public class MapSelectAcitivity extends AppCompatActivity
                                 implements AMapLocationListener,
                                             OnCameraChangeListener,
                                             PoiSearch.OnPoiSearchListener,
-                                            MapSelectedDialog.MapSelectedDialogInterface {
+                                            MapSelectedDialog.MapSelectedDialogInterface,
+                                            GeocodeSearch.OnGeocodeSearchListener {
 
     private Button mButton;
     private SearchView mSearchView;
@@ -57,9 +62,12 @@ public class MapSelectAcitivity extends AppCompatActivity
     private TextView mAddLocationText;
 
     //数据模型
-    Double centerLat,centerLng;
+
+    Double centerLat,centerLng;//临时变量，避免频繁更新currentReminder
     String avataFilePath ="";
-    Reminder initReminder = new Reminder(); //当前位置为基础的Reminder
+    String LocationStr ="";
+    Reminder currentReminder; //当前位置为基础的Reminder,仅作为Activity之间传输数据用
+
 
 
     boolean isInitLoad;
@@ -80,6 +88,16 @@ public class MapSelectAcitivity extends AppCompatActivity
         this.centerLng = centerLng;
     }
 
+    public Reminder getCurrentReminder() {
+        if (currentReminder==null)
+            currentReminder = new Reminder();
+        return currentReminder;
+    }
+
+    public void setCurrentReminder(Reminder currentReminder) {
+        this.currentReminder = currentReminder;
+    }
+
     private MapView mMapView;
     private AMap mAmap;
     private AMapLocationClient aMapLocationClient;
@@ -88,6 +106,10 @@ public class MapSelectAcitivity extends AppCompatActivity
     //POI search
     protected PoiSearch.Query mPoiQ;
     protected PoiSearch mPoiS;
+    protected String cameraCityCode ="021";
+
+    //Geocode Search
+    protected GeocodeSearch geocoderSearch;
 
     ArrayList<String> listForView = new ArrayList<String>();
     ArrayList<LatLonPoint> listOfLatLngPoint = new ArrayList<LatLonPoint>();
@@ -99,8 +121,8 @@ public class MapSelectAcitivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         isInitLoad = true;
         Intent it = getIntent();
-        initReminder = (Reminder) it.getExtras().getParcelable("REMINDER");
-        Log.i("4_MapSelection", initReminder.toString());
+        currentReminder = (Reminder) it.getExtras().getParcelable("REMINDER");
+        Log.i("4_MapSelection", currentReminder.toString());
 
 
         setContentView(R.layout.activity_map_select_acitivity);
@@ -131,6 +153,8 @@ public class MapSelectAcitivity extends AppCompatActivity
                                     return;
                                 }
                                 try {
+
+                                    // ABSPath = getFilesDir()+"/"+'avataFilePath'
                                     FileOutputStream fos = openFileOutput(avataFilePath, Context.MODE_PRIVATE);
                                     Log.i("click add","点击新建文件");
                                     boolean b = bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
@@ -208,15 +232,14 @@ public class MapSelectAcitivity extends AppCompatActivity
         });
 
 
-
-
         mMapView = (MapView)findViewById(R.id.MAP);
         mMapView.onCreate(savedInstanceState);
         mAmap = mMapView.getMap();
 
         setUpMap();
         configLocation();
-        configPOISearch();
+        setUpGeoCodeSearch();
+        //configPOISearch();
 
         aMapLocationClient.startLocation();
 
@@ -228,10 +251,10 @@ public class MapSelectAcitivity extends AppCompatActivity
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Log.i("ITEMCLICK",Double.toString(listOfLatLngPoint.get(position).getLatitude()));
-                moveCameraToLocation(new LatLng(listOfLatLngPoint.get(position).getLatitude(),listOfLatLngPoint.get(position).getLongitude()),16);
+                //moveCameraToLocation(new LatLng(listOfLatLngPoint.get(position).getLatitude(),listOfLatLngPoint.get(position).getLongitude()),16);
+                animatedMoveCameraToLocation(new LatLng(listOfLatLngPoint.get(position).getLatitude(),listOfLatLngPoint.get(position).getLongitude()),16);
             }
         });
-
 
         mAmap.setOnCameraChangeListener(this);
         //设置地图点击的回调对象
@@ -264,9 +287,11 @@ public class MapSelectAcitivity extends AppCompatActivity
             public void onMapLoaded() {
                 Log.i("MAP LOADED","地图加载完成");
                 //Log.i("MAP LOADED",Double.toString(initCenterLat)+Double.toString(initCenterLng));
+                //如果是OnCreate调用则移动到传过来的位置，否则啥也不干
+                //TODO 地图切换，后续添加
                 if(isInitLoad){
-                    if(initReminder.isQualifiedReminder())
-                        moveCameraToLocation(new LatLng(initReminder.getLat(),initReminder.getLng()),16);
+                    if(currentReminder.isQualifiedReminder())
+                        moveCameraToLocation(new LatLng(currentReminder.getLat(),currentReminder.getLng()),16);
                 }
                 isInitLoad = false;
             }
@@ -308,13 +333,16 @@ public class MapSelectAcitivity extends AppCompatActivity
             Log.i("HANDLEINTENT",query);
             doMySearch(query);
         }
+        if(intent.getAction().equals("com.example.frank.locationmind.map.clicked")){
+
+        }
     }
 
     public void doMySearch(String q){
-        Log.i("DOSEARCH",q);
+        Log.i("SEARCH FOR SEARCH",q);
         PoiSearch.Query mPoiQ;
         PoiSearch mPoiS;
-        mPoiQ = new PoiSearch.Query(q,"","021");
+        mPoiQ = new PoiSearch.Query(q,"",cameraCityCode);
         mPoiQ.setPageSize(10);
         mPoiQ.setPageNum(1);
 
@@ -329,15 +357,6 @@ public class MapSelectAcitivity extends AppCompatActivity
         newFragment.show(getFragmentManager(), "选择地图");
     }
 
-
-    private void configPOISearch(){
-        mPoiQ = new PoiSearch.Query("","","021");
-        mPoiQ.setPageSize(10);
-        mPoiQ.setPageNum(1);
-
-        mPoiS = new PoiSearch(MapSelectAcitivity.this,mPoiQ);
-        mPoiS.setOnPoiSearchListener(MapSelectAcitivity.this);
-    }
 
     private  void configLocation(){
         aMapLocationClient = new AMapLocationClient(MapSelectAcitivity.this);
@@ -367,6 +386,11 @@ public class MapSelectAcitivity extends AppCompatActivity
         mAmap.setMyLocationEnabled(true);// 设置为true表示启动显示定位蓝点，false表示隐藏定位蓝点并不进行定位，默认是false。
 
         //moveCameraToLocation(new LatLng(initCenterLat,initCenterLng),9);
+    }
+
+    private void setUpGeoCodeSearch(){
+        geocoderSearch = new GeocodeSearch(this);
+        geocoderSearch.setOnGeocodeSearchListener(this);
     }
 
     //Activity生命周期管理,在其中管理地图的生命周期
@@ -404,8 +428,8 @@ public class MapSelectAcitivity extends AppCompatActivity
     public void onLocationChanged(AMapLocation aMapLocation) {
         if(aMapLocation != null) {
             if (aMapLocation.getErrorCode() == 0){
-                //initReminder.lat= aMapLocation.getLatitude();
-                //initReminder.lng = aMapLocation.getLongitude();
+                //currentReminder.lat= aMapLocation.getLatitude();
+                //currentReminder.lng = aMapLocation.getLongitude();
                 //moveCameraToLocation(mLatlng,13);
                 //mAmap.clear();
                 //final Marker marker = mAmap.addMarker(new MarkerOptions().position(mLatlng).title("当前位置").snippet("DefaultMarker"))
@@ -420,21 +444,42 @@ public class MapSelectAcitivity extends AppCompatActivity
 
     }
 
+    //move camera to Latlng,zoom to level
     private void moveCameraToLocation (LatLng latLng, float zoomLevel) {
         CameraUpdateFactory cameraUpdateF = new CameraUpdateFactory();
         CameraUpdate cameraUpdate = cameraUpdateF.newLatLngZoom(latLng, zoomLevel);
         mAmap.moveCamera(cameraUpdate);
     }
 
+    private void animatedMoveCameraToLocation(LatLng latLng,float zoomLevel){
+        CameraUpdateFactory cameraUpdateF = new CameraUpdateFactory();
+        CameraUpdate cameraUpdate = cameraUpdateF.newLatLngZoom(latLng, zoomLevel);
+        mAmap.animateCamera(cameraUpdate);
+    }
+
+    //Poi search
     @Override
     public void onPoiSearched(PoiResult poiResult, int i) {
+        Log.i("PoiResult","CITYCODE = "+cameraCityCode);
         listForView.clear();
         listOfLatLngPoint.clear();
-        PoiResultToList(poiResult);
-        Log.i("ONSEARCHED",Integer.toString(listForView.size()));
-        Log.i("ONSEARCHED",poiResult.getQuery().getQueryString());
-        mAddLocationText.setText(listForView.get(0));
         mArrayAdapter.notifyDataSetChanged();
+        PoiResultToList(poiResult);
+        Log.i("ONSEARCHED",poiResult.getQuery().getQueryString());
+        Log.i("ONSEARCHED",Integer.toString(listForView.size()));
+        if(listForView.size()>0) {
+            LocationStr = listForView.get(0);
+            mAddLocationText.setText(listForView.get(0));
+            //addMarksOnMap(listOfLatLngPoint);
+            mArrayAdapter.notifyDataSetChanged();
+        }
+    }
+
+    private void addMarksOnMap(ArrayList<LatLonPoint> list){
+        for(LatLonPoint latLonPoint:list){
+            mAmap.addMarker(new MarkerOptions().position(new LatLng(latLonPoint.getLatitude(),latLonPoint.getLongitude())).title("S"));
+            //final Marker marker = mAmap.addMarker(new MarkerOptions().position(new LatLng(centerLat,centerLng)).title("当前地点").snippet("DefaultMarker"));
+        }
     }
 
     private void PoiResultToList(PoiResult poiResult){
@@ -448,7 +493,6 @@ public class MapSelectAcitivity extends AppCompatActivity
         }else{
             Log.i("PoiSearch Result","error,no result");
         }
-
     }
 
 
@@ -460,32 +504,68 @@ public class MapSelectAcitivity extends AppCompatActivity
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
         mAmap.clear();
-
     }
 
     @Override
     public void onCameraChangeFinish(CameraPosition cameraPosition) {
 
+        // 第一个参数表示一个Latlng，第二参数表示范围多少米，第三个参数表示是火系坐标系还是GPS原生坐标系
 
-        Log.i("CameraChangeFinish", "run");
+        Log.i("CameraChangeFinish", "可见视图改变完成");
         centerLat = cameraPosition.target.latitude;
         centerLng = cameraPosition.target.longitude;
+
+        RegeocodeQuery query = new RegeocodeQuery(new LatLonPoint(centerLat,centerLng), 200,GeocodeSearch.AMAP);
+        geocoderSearch.getFromLocationAsyn(query);
+
         final Marker marker = mAmap.addMarker(new MarkerOptions().position(new LatLng(centerLat,centerLng)).title("当前地点").snippet("DefaultMarker"));
         listForView.clear();
         listOfLatLngPoint.clear();
+        configCameraPOISearch();
         mPoiS.setBound(new PoiSearch.SearchBound(new LatLonPoint(centerLat,centerLng),1000));
         mPoiS.searchPOIAsyn();
     }
 
+    private void configCameraPOISearch(){
+        mPoiQ = new PoiSearch.Query("","",cameraCityCode);
+        mPoiQ.setPageSize(10);
+        mPoiQ.setPageNum(1);
+
+        mPoiS = new PoiSearch(MapSelectAcitivity.this,mPoiQ);
+        mPoiS.setOnPoiSearchListener(MapSelectAcitivity.this);
+    }
+
+    //Dialog callback
     @Override
     public void onMapSelected(boolean isConfirmed) {
         if (isConfirmed){
             Intent it = new Intent();
-            it.putExtra("LAT",centerLat);
-            it.putExtra("LNG",centerLng);
-            it.putExtra("avaFile",avataFilePath);
+            Bundle bd = new Bundle();
+            Log.i("5-1_MapSelection", currentReminder.toString());
+            currentReminder.lat = centerLat;
+            currentReminder.lng = centerLng;
+            currentReminder.placeDescription = LocationStr+"附近";
+            currentReminder.thumbernailFile = getFilesDir()+"/"+avataFilePath;
+            Log.i("5_MapSelection", currentReminder.toString());
+            bd.putParcelable("REMINDER",currentReminder);
+            it.putExtras(bd);
             MapSelectAcitivity.this.setResult(2551,it);
             MapSelectAcitivity.this.finish();
         }
+    }
+
+    //latlng to address
+    @Override
+    public void onRegeocodeSearched(RegeocodeResult regeocodeResult, int i) {
+        if(i == 1000){
+            Log.i("CameraChangeFinish", "逆地理编码成功");
+            cameraCityCode = regeocodeResult.getRegeocodeAddress().getCityCode();
+        }
+    }
+
+    //address to Latlng
+    @Override
+    public void onGeocodeSearched(GeocodeResult geocodeResult, int i) {
+
     }
 }

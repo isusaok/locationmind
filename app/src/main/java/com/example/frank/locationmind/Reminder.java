@@ -52,7 +52,7 @@ public class Reminder implements Parcelable, Serializable {
     }
 
 
-    public Reminder() {
+    public Reminder(){
     }
 
     public Reminder(double latD, double lngD, @Nullable String taskDs) {
@@ -63,7 +63,6 @@ public class Reminder implements Parcelable, Serializable {
         working = true;
         ReminderType = EnumSet.of(LocationState.GEO_IN_REMINDIE);
     }
-
 
     @Override
     public boolean equals(Object o) {
@@ -101,6 +100,23 @@ public class Reminder implements Parcelable, Serializable {
         result = 31 * result + (ReminderType != null ? ReminderType.hashCode() : 0);
         return result;
     }
+
+    public int hashCodeExThumber() {
+        int result;
+        long temp;
+        result = (working ? 1 : 0);
+        temp = Double.doubleToLongBits(lat);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(lng);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(diameter);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        result = 31 * result + (placeDescription != null ? placeDescription.hashCode() : 0);
+        result = 31 * result + taskDescription.hashCode();
+        result = 31 * result + (ReminderType != null ? ReminderType.hashCode() : 0);
+        return result;
+    }
+
 
     public static long getSerialVersionUID() {
         return serialVersionUID;
@@ -233,7 +249,22 @@ public class Reminder implements Parcelable, Serializable {
         if (null==taskDescription||taskDescription.length()<1) return false;
         if (lat<(-90)||lat>90) return  false;
         if (lng<(-180)||lng>180) return false;
-        if (ReminderType.size()<1) return false;
+        if (ReminderType==null||ReminderType.size()<1) return false;
+        //if (thumbernailFile==null||thumbernailFile.trim().length()>0) return false;
         return true;
     }
+
+
+    public int thumberFilaName() {
+        int result;
+        long temp;
+        temp = Double.doubleToLongBits(lat);
+        result = (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(lng);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        result = 31 * result + placeDescription.hashCode();
+        return result;
+    }
+
+
 }

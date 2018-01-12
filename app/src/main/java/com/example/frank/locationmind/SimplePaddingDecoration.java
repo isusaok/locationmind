@@ -22,8 +22,10 @@ public class SimplePaddingDecoration extends RecyclerView.ItemDecoration {
     @Override
     public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
         super.getItemOffsets(outRect, view, parent, state);
-        outRect.top= dividerHeight;
-        outRect.bottom = dividerHeight;//类似加了一个bottom padding
+        outRect.top =dividerHeight;
+        outRect.bottom = dividerHeight;
+        outRect.left = dividerHeight*2;
+        outRect.right = dividerHeight*2;
     }
 
 }

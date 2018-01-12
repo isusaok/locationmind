@@ -5,10 +5,12 @@
     <string name="title_activity_map">MapActivity</string>
 
     <!--Main Activity 字符串资源 -->
-    <string name="Update_service">更新所有</string>
+    <string name="Update_service">强制保存所有提醒</string>
     <string name="stop_service">停止服务</string>
     <string name="other_service">其他服务</string>
     <string name="checkbox_tip">正在运行</string>
+    <string name="fab_tip">添加提醒</string>
+
 
 
 
@@ -20,8 +22,12 @@
     <string name="checkbox_stay">停留</string>
     <string name="button_back">取消</string>
     <string name="button_add">保存</string>
+
+
     <string name="search_hint_location">请输入地点名称</string>
     <string name="TextView_add_location">添加当前地点</string>
+    <string name="TextView_add_diameter">围栏直径</string>
+
 
     <!--Map Select Activity 字符串资源 -->
     <string name="search_button_text">搜索地点</string>
