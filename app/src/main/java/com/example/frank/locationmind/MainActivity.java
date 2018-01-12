@@ -532,7 +532,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void convert(BaseViewHolder helper, final Reminder item) {
-            helper.setText(R.id.textView,"在"+item.getPlaceDescription().trim()+"\n"+item.getTaskDescription());
+            helper.setText(R.id.textView,"在"+item.getPlaceDescription().trim()+item.getTaskDescription());
             helper.setChecked(R.id.checkBox,item.isWorking());
             helper.setImageDrawable(R.id.imageView,Drawable.createFromPath(item.thumbernailFile));
             helper.addOnClickListener(R.id.imageView);
