@@ -60,7 +60,7 @@ import java.util.List;
 
 import static java.lang.System.*;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends CheckPermissionsActivity {
 
     private static final String dataFileURI = "HELLO";
     private static final int SCHEDULE_SERVICE_ID = 9001;

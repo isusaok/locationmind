@@ -4,6 +4,15 @@
     <string name="btn2">停止地理围栏服务</string>
     <string name="title_activity_map">MapActivity</string>
 
+    <!--CheckPermissions Activity 字符串资源 -->
+    <string name="notifyTitle">申请权限</string>
+    <string name="notifyMsg">需要地理权限</string>
+    <string name="cancel">取消</string>
+    <string name="setting">去设置</string>
+
+
+
+
     <!--Main Activity 字符串资源 -->
     <string name="Update_service">强制保存所有提醒</string>
     <string name="stop_service">停止服务</string>

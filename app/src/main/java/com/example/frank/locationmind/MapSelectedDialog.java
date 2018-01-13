@@ -7,11 +7,10 @@ import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 
 /**
- * Created by frank on 18/1/4.
+ * Created by frank on 18/1/13.
  */
 
 public class MapSelectedDialog extends DialogFragment {
-
     public static MapSelectedDialog newInstance(String message){
         MapSelectedDialog frag = new MapSelectedDialog();
         Bundle args = new Bundle();
