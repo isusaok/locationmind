@@ -11,16 +11,12 @@
     <string name="setting">去设置</string>
 
 
-
-
     <!--Main Activity 字符串资源 -->
     <string name="Update_service">强制保存所有提醒</string>
     <string name="stop_service">停止服务</string>
     <string name="other_service">其他服务</string>
     <string name="checkbox_tip">正在运行</string>
     <string name="fab_tip">添加提醒</string>
-
-
 
 
     <!--Add Reminder Activity 字符串资源 -->
@@ -44,11 +40,7 @@
 
     <string name="dialog_ok">确认</string>
     <string name="dialog_cancel">取消</string>
-
-
-
-
-
+    <string name="title_activity_main2">Main2Activity</string>
 
 
 </resources>

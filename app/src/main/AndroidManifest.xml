@@ -47,26 +47,28 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:screenOrientation="portrait"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        android:screenOrientation="portrait">
+        android:theme="@style/AppTheme">
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTask"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity android:name=".AddReminderActivity" />
         <activity
             android:name=".MapSelectAcitivity"
-            android:theme="@style/AppTheme.NoActionBar"
-            android:launchMode="singleTop">
+            android:launchMode="singleTop"
+            android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.app.searchable"
-                android:resource="@xml/searchable"/>
+                android:resource="@xml/searchable" />
+
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
@@ -81,10 +83,10 @@
         <service
             android:name=".GeoFenceService"
             android:enabled="true"
-            android:process=":watch"
-            android:exported="true" />
-
-        <service android:name=".MySchedulerService"
+            android:exported="true"
+            android:process=":watch" />
+        <service
+            android:name=".MySchedulerService"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <receiver
@@ -95,15 +97,18 @@
                 <action android:name="com.example.frank.location.reboot.service" />
             </intent-filter>
         </receiver>
-
-        <receiver android:name="com.example.frank.locationmind.BootCompleteStartReceiver" >
+        <receiver android:name=".BootCompleteStartReceiver">
             <intent-filter>
+
                 <!-- 开机广播 -->
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
-
+        <activity
+            android:name=".Main2Activity"
+            android:label="@string/title_activity_main2"
+            android:theme="@style/AppTheme"></activity>
     </application>
 
 </manifest>
