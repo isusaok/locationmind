@@ -328,22 +328,19 @@ class MainActivity : CheckPermissionsActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
-        when (resultCode) {
+        when (resultCode!!) {
             2501 -> {
-                val rf = data.extras!!.getParcelable("REMINDER") as Reminder
-                reminderList!!.add(rf)
-                myAdapter?.notifyDataSetChanged()
+                val rf = data!!.extras!!.getParcelable("REMINDER") as Reminder
+                reminderList!!.add(rf!!)
+                myAdapter!!.notifyDataSetChanged()
                 writeListToFileOnThread(dataFileURI, reminderList)
                 val intentToService = Intent(this@MainActivity, GeoFenceService::class.java)
                 intentToService.putExtra("FROM", "NEW PLACE")
                 startService(intentToService)
             }
         }
-        for (rd in reminderList!!) {
-            Log.i("SAVED REMINDER", rd.toString())
-        }
-        super.onActivityResult(requestCode, resultCode, data)
 
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     //对象数组存入文件
@@ -408,7 +405,7 @@ class MainActivity : CheckPermissionsActivity() {
         editor.apply()
     }
 
-    //读取存储files目录下的json文件
+    /*读取存储files目录下的json文件
     private fun initReminderListFromJSONFILE(fileNameinFileDir: String): Boolean {
         reminderList!!.clear()
 
@@ -441,9 +438,10 @@ class MainActivity : CheckPermissionsActivity() {
         }
 
     }
+    */
 
 
-    //使用json文件初始化reminderList
+    /*使用json文件初始化reminderList
     private fun initDataFromJSONAsset(jsonFileName: String): Boolean {
 
         reminderList!!.clear()
@@ -477,6 +475,7 @@ class MainActivity : CheckPermissionsActivity() {
         }
 
     }
+    */
 
 
     override fun onDestroy() {

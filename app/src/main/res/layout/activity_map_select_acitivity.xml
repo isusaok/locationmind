@@ -7,6 +7,16 @@
     tools:context="com.example.frank.locationmind.MapSelectAcitivity">
 
 
+    <ProgressBar
+        android:id="@+id/PROGRESS_BAR"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="160dp"
+        android:layout_marginTop="64dp"
+        android:visibility="gone"
+        android:layout_weight="1" />
+
     <Button
         android:id="@+id/SEARCHVIEW_LOCATIONSELECT"
         android:layout_width="wrap_content"
@@ -23,7 +33,9 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="64dp"
         android:elevation="10dp"
-        android:text="@string/search_button_text" />
+        android:text="@string/search_button_text" >
+
+    </SearchView>
 
     <android.support.constraint.ConstraintLayout
         android:layout_width="match_parent"

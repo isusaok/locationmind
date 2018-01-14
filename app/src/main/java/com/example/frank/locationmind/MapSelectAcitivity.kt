@@ -12,12 +12,7 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.util.Log
 import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.ListView
-import android.widget.SearchView
-import android.widget.TextView
+import android.widget.*
 
 import com.amap.api.location.AMapLocation
 import com.amap.api.location.AMapLocationClient
@@ -54,6 +49,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
 
     private var mButton: Button? = null
     private var mSearchView: SearchView? = null
+    private var mProgressBar:ProgressBar? =null
     private var mListView: ListView? = null
     private var mAddLocationText: TextView? = null
 
@@ -75,21 +71,22 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
 
     //POI search
     protected var mPoiQ: PoiSearch.Query = PoiSearch.Query("","","")
-    protected var mPoiS: PoiSearch = PoiSearch(this,mPoiQ)
+    protected var mPoiS: PoiSearch? = null
     protected var cameraCityCode = "021"
 
     //Geocode Search
-    protected var geocoderSearch: GeocodeSearch = GeocodeSearch(this)
+    protected var geocoderSearch: GeocodeSearch? = null
 
     internal var listForView = ArrayList<String>()
     internal var listOfLatLngPoint = ArrayList<LatLonPoint>()
-    internal var mArrayAdapter: ArrayAdapter<String> = ArrayAdapter(this,0)
+    internal var mArrayAdapter: ArrayAdapter<String>? = null
 
 
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         isInitLoad = true
         val it = intent
         currentReminder = it.extras!!.getParcelable("REMINDER")
@@ -99,6 +96,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         setContentView(R.layout.activity_map_select_acitivity)
         mButton = findViewById<View>(R.id.SEARCHVIEW_LOCATIONSELECT) as Button
         mSearchView = findViewById<View>(R.id.SEARCH_VIEW_TEXT) as SearchView
+        mProgressBar = findViewById<View>(R.id.PROGRESS_BAR) as ProgressBar
         mListView = findViewById<View>(R.id.LISTVIEW_LOCATIONSELECT) as ListView
         mAddLocationText = findViewById<View>(R.id.TEXTSELECT) as TextView
         mAddLocationText!!.setOnClickListener {
@@ -287,6 +285,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
             val query = intent.getStringExtra(SearchManager.QUERY)
             Log.i("HANDLEINTENT", query)
             doMySearch(query)
+            //mProgressBar.
         }
         if (intent.action == "com.example.frank.locationmind.map.clicked") {
 
@@ -304,6 +303,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         mPoiS = PoiSearch(this@MapSelectAcitivity, mPoiQ)
         mPoiS.setOnPoiSearchListener(this@MapSelectAcitivity)
         mPoiS.searchPOIAsyn()
+        mProgressBar!!.visibility = View.VISIBLE
     }
 
     //对话框处理
@@ -345,7 +345,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
 
     private fun setUpGeoCodeSearch() {
         geocoderSearch = GeocodeSearch(this)
-        geocoderSearch.setOnGeocodeSearchListener(this)
+        geocoderSearch!!.setOnGeocodeSearchListener(this)
     }
 
     //Activity生命周期管理,在其中管理地图的生命周期
@@ -413,15 +413,16 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         Log.i("PoiResult", "CITYCODE = " + cameraCityCode)
         listForView.clear()
         listOfLatLngPoint.clear()
-        mArrayAdapter.notifyDataSetChanged()
+        mArrayAdapter!!.notifyDataSetChanged()
         PoiResultToList(poiResult)
         Log.i("ONSEARCHED", poiResult.query.queryString)
         Log.i("ONSEARCHED", Integer.toString(listForView.size))
+        mProgressBar!!.visibility = View.GONE
         if (listForView.size > 0) {
             LocationStr = listForView[0]
             mAddLocationText!!.text = listForView[0]
             //addMarksOnMap(listOfLatLngPoint);
-            mArrayAdapter.notifyDataSetChanged()
+            mArrayAdapter!!.notifyDataSetChanged()
         }
     }
 
@@ -463,14 +464,15 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         centerLng = cameraPosition.target.longitude
 
         val query = RegeocodeQuery(LatLonPoint(centerLat!!, centerLng!!), 200f, GeocodeSearch.AMAP)
-        geocoderSearch.getFromLocationAsyn(query)
+        geocoderSearch!!.getFromLocationAsyn(query)
 
         val marker = mAmap!!.addMarker(MarkerOptions().position(LatLng(centerLat!!, centerLng!!)).title("当前地点").snippet("DefaultMarker"))
         listForView.clear()
         listOfLatLngPoint.clear()
         configCameraPOISearch()
-        mPoiS.bound = PoiSearch.SearchBound(LatLonPoint(centerLat!!, centerLng!!), 1000)
-        mPoiS.searchPOIAsyn()
+        mPoiS!!.bound = PoiSearch.SearchBound(LatLonPoint(centerLat!!, centerLng!!), 1000)
+        mPoiS!!.searchPOIAsyn()
+        mProgressBar!!.visibility = View.VISIBLE
     }
 
     private fun configCameraPOISearch() {
@@ -479,7 +481,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         mPoiQ.pageNum = 1
 
         mPoiS = PoiSearch(this@MapSelectAcitivity, mPoiQ)
-        mPoiS.setOnPoiSearchListener(this@MapSelectAcitivity)
+        mPoiS!!.setOnPoiSearchListener(this@MapSelectAcitivity)
     }
 
     //Dialog callback

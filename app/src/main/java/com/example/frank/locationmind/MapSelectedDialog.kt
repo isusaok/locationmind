@@ -17,7 +17,7 @@ class MapSelectedDialog : DialogFragment() {
         fun onMapSelected(isConfirmed: Boolean)
     }
 
-    override fun onCreateDialog(savedInstanceState: Bundle): Dialog {
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
 
         val message = arguments.getString("MESSAGE")
         // Use the Builder class for convenient dialog construction
@@ -31,7 +31,7 @@ class MapSelectedDialog : DialogFragment() {
                 .setNegativeButton(R.string.dialog_cancel) { dialog, id ->
                     // User cancelled the dialog
                     val a = activity as MapSelectedDialogInterface
-                    a.onMapSelected(false)
+                    a!!.onMapSelected(false)
                 }
         // Create the AlertDialog object and return it
         return builder.create()

@@ -158,7 +158,7 @@ class AddReminderActivity : AppCompatActivity(), CompoundButton.OnCheckedChangeL
                 Thread(Runnable { copyFileAn(From, To) }).start()
                 currentReminder!!.thumbernailFile = To
                 currentReminder!!.isWorking = true
-                bd.putParcelable("REMINDER", currentReminder)
+                bd.putParcelable("REMINDER", currentReminder!!)
                 it2.putExtras(bd)
                 this@AddReminderActivity.setResult(2501, it2)
                 this@AddReminderActivity.finish()

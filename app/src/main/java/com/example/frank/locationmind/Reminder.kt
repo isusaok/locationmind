@@ -15,13 +15,13 @@ import java.util.EnumSet
  * Created by frank on 17/12/12.
  */
 
-class Reminder : Parcelable, Serializable {
-
+class Reminder() : Parcelable, Serializable {
     //指明是否处于工作状态
     var isWorking: Boolean = false
 
     //经纬度数据
     var lat: Double = 0.toDouble()
+
     var lng: Double = 0.toDouble()
 
     //提醒半径
@@ -29,14 +29,15 @@ class Reminder : Parcelable, Serializable {
 
     //地点描述
     var placeDescription: String? = null
+
     //提醒描述
     var taskDescription: String? = null
+
     //地图视图文件
     var thumbernailFile: String? = null
 
     //提醒服务类型
     var ReminderType: EnumSet<Reminder.LocationState>? = null
-
 
     //if (thumbernailFile==null||thumbernailFile.trim().length()>0) return false;
     val isQualifiedReminder: Boolean
@@ -47,22 +48,26 @@ class Reminder : Parcelable, Serializable {
             return if (ReminderType == null || ReminderType!!.size < 1) false else true
         }
 
+    constructor(parcel: Parcel) : this() {
+        isWorking = parcel.readByte() != 0.toByte()
+        lat = parcel.readDouble()
+        lng = parcel.readDouble()
+        diameter = parcel.readDouble()
+        placeDescription = parcel.readString()
+        taskDescription = parcel.readString()
+        thumbernailFile = parcel.readString()
+        ReminderType = (parcel.readSerializable() as? EnumSet<LocationState>)
+    }
+
+
+
     //提示提醒服务的类型，可以使用或运算
     enum class LocationState : Serializable {
         GEO_IN_REMINDIE, GEO_OUT_REMINDIE, GEO_STAY_REMINDIE
     }
 
 
-    constructor() {}
 
-    constructor(latD: Double, lngD: Double, taskDs: String?) {
-        lat = latD
-        lng = lngD
-        diameter = 500.0
-        taskDescription = taskDs
-        isWorking = true
-        ReminderType = EnumSet.of(LocationState.GEO_IN_REMINDIE)
-    }
 
     override fun equals(o: Any?): Boolean {
         if (this === o) return true
@@ -115,32 +120,6 @@ class Reminder : Parcelable, Serializable {
         return result
     }
 
-    override fun describeContents(): Int {
-        return 0
-    }
-
-    override fun writeToParcel(dest: Parcel, flags: Int) {
-        dest.writeByte(if (this.isWorking) 1.toByte() else 0.toByte())
-        dest.writeDouble(this.lat)
-        dest.writeDouble(this.lng)
-        dest.writeDouble(this.diameter)
-        dest.writeString(this.placeDescription)
-        dest.writeString(this.taskDescription)
-        dest.writeString(this.thumbernailFile)
-        dest.writeSerializable(this.ReminderType)
-    }
-
-    protected constructor(`in`: Parcel) {
-        this.isWorking = `in`.readByte().toInt() != 0
-        this.lat = `in`.readDouble()
-        this.lng = `in`.readDouble()
-        this.diameter = `in`.readDouble()
-        this.placeDescription = `in`.readString()
-        this.taskDescription = `in`.readString()
-        this.thumbernailFile = `in`.readString()
-        this.ReminderType = `in`.readSerializable() as EnumSet<LocationState>
-    }
-
     override fun toString(): String {
         return "Reminder{" +
                 "working=" + isWorking +
@@ -154,7 +133,6 @@ class Reminder : Parcelable, Serializable {
                 '}'
     }
 
-
     fun thumberFilaName(): Int {
         var result: Int
         var temp: Long
@@ -166,20 +144,28 @@ class Reminder : Parcelable, Serializable {
         return result
     }
 
-    companion object {
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeByte(if (isWorking) 1 else 0)
+        parcel.writeDouble(lat)
+        parcel.writeDouble(lng)
+        parcel.writeDouble(diameter)
+        parcel.writeString(placeDescription)
+        parcel.writeString(taskDescription)
+        parcel.writeString(thumbernailFile)
+        parcel.writeSerializable(this.ReminderType)
+    }
 
-        const val serialVersionUID = 1L
-        private val WRONG_LAT = 360.0
-        private val WRONG_LNG = 360.0
+    override fun describeContents(): Int {
+        return 0
+    }
 
-        val CREATOR: Parcelable.Creator<Reminder> = object : Parcelable.Creator<Reminder> {
-            override fun createFromParcel(source: Parcel): Reminder {
-                return Reminder(source)
-            }
+    companion object CREATOR : Parcelable.Creator<Reminder> {
+        override fun createFromParcel(parcel: Parcel): Reminder {
+            return Reminder(parcel)
+        }
 
-            override fun newArray(size: Int): Array<Reminder?> {
-                return arrayOfNulls(size)
-            }
+        override fun newArray(size: Int): Array<Reminder?> {
+            return arrayOfNulls(size)
         }
     }
 
