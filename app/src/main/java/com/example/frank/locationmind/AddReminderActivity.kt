@@ -114,7 +114,7 @@ class AddReminderActivity : AppCompatActivity(), CompoundButton.OnCheckedChangeL
         seekBar!!.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 currentReminder!!.diameter = (500 + 2500 * progress / 100).toDouble()
-                textView!!.text = java.lang.Double.toString(currentReminder!!.diameter) + "米"
+                textView!!.text = diameterDescriptionFromMeter(currentReminder!!.diameter)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) {
@@ -171,6 +171,15 @@ class AddReminderActivity : AppCompatActivity(), CompoundButton.OnCheckedChangeL
         loadRemindersFromFile(dataFileURI)
     }
 
+    private fun diameterDescriptionFromMeter(meter:Double):String{
+        var diameterStr:String
+        when {
+            meter< 1000 -> diameterStr = String.format("%d米",(meter/10).toInt()*10)
+            else -> diameterStr = String.format("%.1f公里",meter/1000)
+        }
+        return diameterStr
+    }
+
     private fun isInReminderList(rd: Reminder?, list: MutableList<Reminder>?): Boolean {
         for (trd in list!!) {
             if (rd == trd) return true
@@ -189,7 +198,7 @@ class AddReminderActivity : AppCompatActivity(), CompoundButton.OnCheckedChangeL
         editText_Task!!.setText(if (currentReminder!!.taskDescription != null) currentReminder!!.taskDescription else "")
         editText_location!!.setText(if (currentReminder!!.placeDescription != null) currentReminder!!.placeDescription else "")
 
-        textView!!.text = java.lang.Double.toString(if (currentReminder!!.diameter < 500) 500.toDouble() else currentReminder!!.diameter) + "米"
+        textView!!.text = diameterDescriptionFromMeter(if (currentReminder!!.diameter < 500) 500.toDouble() else currentReminder!!.diameter)
 
         val progress = ((currentReminder!!.diameter - 500) / 2500 * 100).toInt()
         seekBar!!.progress = progress

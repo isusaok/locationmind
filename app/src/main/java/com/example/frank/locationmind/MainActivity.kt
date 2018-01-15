@@ -197,6 +197,8 @@ class MainActivity : CheckPermissionsActivity() {
                     val file = File(AFP)
                     file.delete()
                     if (file.exists()) Log.i("DELETE", "删除文件失败")
+                    reminderList!!.removeAt(pos)
+                    writeListToFileOnThread(dataFileURI,reminderList)
                 }
             }
 
