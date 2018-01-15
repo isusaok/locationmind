@@ -50,6 +50,8 @@ import java.io.ObjectOutputStream
 import java.io.OutputStream
 
 import java.lang.System.*
+import java.nio.channels.FileChannel
+import java.nio.channels.FileLock
 import java.util.*
 
 class MainActivity : CheckPermissionsActivity() {
@@ -197,9 +199,8 @@ class MainActivity : CheckPermissionsActivity() {
                     val file = File(AFP)
                     file.delete()
                     if (file.exists()) Log.i("DELETE", "删除文件失败")
-                    reminderList!!.removeAt(pos)
-                    writeListToFileOnThread(dataFileURI,reminderList)
                 }
+                writeListToFileOnThread(dataFileURI,reminderList)
             }
 
             override fun onItemSwipeMoving(canvas: Canvas, viewHolder: RecyclerView.ViewHolder, dX: Float, dY: Float, isCurrentlyActive: Boolean) {
@@ -367,13 +368,23 @@ class MainActivity : CheckPermissionsActivity() {
 
     //对象数组存入文件
     fun writeListIntoFile(fileName: String, stus: ArrayList<*>?) {
-        val oos: ObjectOutputStream
+        var oos: ObjectOutputStream
         try {
             val fos = openFileOutput(fileName, Context.MODE_PRIVATE)
-            oos = ObjectOutputStream(BufferedOutputStream(fos))
-            oos.writeObject(stus)
-            oos.flush()
-            oos.close()
+            val fileChanel = fos.channel
+            var fileLock:FileLock?= null
+            while (true) {
+                fileLock = fileChanel.tryLock()
+                if (null != fileLock){
+                    oos = ObjectOutputStream(BufferedOutputStream(fos))
+                    oos.writeObject(stus)
+                    oos.flush()
+                    fileLock.release()
+                    fileChanel.close()
+                    oos.close()
+                    break
+                }
+            }
         } catch (e: IOException) {
             // TODO Auto-generated catch block
             e.printStackTrace()
