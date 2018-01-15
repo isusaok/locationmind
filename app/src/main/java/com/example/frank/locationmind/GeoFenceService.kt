@@ -10,9 +10,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.SharedPreferences
 import android.net.ConnectivityManager
-import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Message
@@ -26,25 +24,22 @@ import com.amap.api.fence.GeoFenceListener
 import com.amap.api.location.AMapLocation
 import com.amap.api.location.AMapLocationListener
 import com.amap.api.location.DPoint
-import com.amap.api.maps2d.AMapUtils
-import com.amap.api.maps2d.model.LatLng
 
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.IOException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
-import java.util.ArrayList
-import java.util.Collections
 
-import com.amap.api.maps2d.AMapUtils.calculateLineDistance
 import java.lang.System.out
+import java.util.*
+import kotlin.collections.ArrayList as KArrayList
 
 class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
     private val fenceList = ArrayList<GeoFence>()
     private var reminderList = ArrayList<Reminder>()
     protected var mNMgr: NotificationManager?=null
-
+    private val fenceCreeatedTimeList = ArrayList<Long>()
 
     private var mGeoFenceClient: GeoFenceClient? = null
 
@@ -68,7 +63,6 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
 
                 val currentReminder = reminderList[a]
 
-
                 val fenceId = bundle.getString(GeoFence.BUNDLE_KEY_FENCEID)
                 //status标识的是当前的围栏状态，不是围栏行为
                 val status = bundle.getInt(GeoFence.BUNDLE_KEY_FENCESTATUS)
@@ -83,7 +77,7 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
                         sb.append(currentReminder.taskDescription)
                         //sb.append(customId);
                         if (currentReminder.ReminderType!!.contains(Reminder.LocationState.GEO_IN_REMINDIE)) {
-                            sendAnNotification(sb.toString(), a)
+                            checkTimeThenNotify(sb.toString(), a)
                         }
                     }
                     GeoFence.STATUS_OUT -> {
@@ -93,7 +87,7 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
                         sb.append(currentReminder.placeDescription)
                         sb.append(currentReminder.taskDescription)
                         if (currentReminder.ReminderType!!.contains(Reminder.LocationState.GEO_OUT_REMINDIE)) {
-                            sendAnNotification(sb.toString(), a)
+                            checkTimeThenNotify(sb.toString(), a)
                         }
                     }
                     GeoFence.STATUS_STAYED -> {
@@ -103,7 +97,7 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
                         sb.append(currentReminder.placeDescription)
                         sb.append(currentReminder.taskDescription)
                         if (currentReminder.ReminderType!!.contains(Reminder.LocationState.GEO_STAY_REMINDIE)) {
-                            sendAnNotification(sb.toString(), a)
+                            checkTimeThenNotify(sb.toString(), a)
                         }
                     }
                     else -> {
@@ -118,6 +112,18 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
                 msg.what = 2
                 handler.sendMessage(msg)
             }
+        }
+    }
+
+    //check time，after geofence created 1 minute then start notification,阻止地理围栏创建的的第一次广播
+    private fun checkTimeThenNotify(str: String, position: Int){
+        val currentMillis = System.currentTimeMillis()
+        Log.i("creat time",position.toString()+"----------"+fenceCreeatedTimeList[position].toString())
+        Log.i("current time",currentMillis.toString())
+        val millisDiff = System.currentTimeMillis()-fenceCreeatedTimeList[position]
+        Log.i("current time difference",millisDiff.toString())
+        if ((millisDiff>1*60*1000) and (millisDiff<1000*60*60*24) ) {//地理围栏建立的时间在1天与1分钟之间通知，否则忽略
+            sendAnNotification(str, position)
         }
     }
 
@@ -138,7 +144,7 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
                 -> {
                     val sb = StringBuilder()
                     sb.append("添加围栏成功")
-                    val customId = msg.obj as String
+                    //val customId = msg.obj as String
                     Toast.makeText(applicationContext, sb.toString(),
                             Toast.LENGTH_SHORT).show()
                 }
@@ -190,9 +196,7 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
     }
 
     private fun setUpGeoFence() {
-        Log.i("start service", "开始")
         mGeoFenceClient = GeoFenceClient(applicationContext)
-        Log.i("start service", "地理围栏客户端初始化成功")
 
         //监听网络变化
         val itFilt = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
@@ -219,6 +223,7 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
                     centPoint.longitude = re.lng
                     val customeID = Integer.toString(i) + "_" + re.taskDescription
                     mGeoFenceClient!!.addGeoFence(centPoint, if (re.diameter < 500) 500f else re.diameter.toFloat(), customeID)
+                    fenceCreeatedTimeList.add(i,System.currentTimeMillis())
                 }
             }
             Log.i("create fence list", "从list中加入围栏")
@@ -261,7 +266,7 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
 
 
     fun sendAnNotification(str: String, position: Int) {
-        val NOTIFICATION_ID_LOCATION: Int
+        //val NOTIFICATION_ID_LOCATION: Int
         val builder = Notification.Builder(this)
 
         builder.setContentTitle("地理围栏")

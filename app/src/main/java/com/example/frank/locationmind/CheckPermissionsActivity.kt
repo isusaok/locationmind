@@ -110,10 +110,10 @@ open class CheckPermissionsActivity : AppCompatActivity(), ActivityCompat.OnRequ
 
         // 拒绝, 退出应用
         builder.setNegativeButton(R.string.cancel
-        ) { dialog, which -> finish() }
+        ) { _, _ -> finish() }
 
         builder.setPositiveButton(R.string.setting
-        ) { dialog, which -> startAppSettings() }
+        ) { _, _ -> startAppSettings() }
 
         builder.setCancelable(false)
 

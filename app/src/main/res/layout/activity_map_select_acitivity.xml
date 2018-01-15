@@ -12,10 +12,9 @@
         style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="160dp"
-        android:layout_marginTop="64dp"
-        android:visibility="gone"
-        android:layout_weight="1" />
+        android:layout_gravity="center"
+        android:layout_weight="1"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/SEARCHVIEW_LOCATIONSELECT"

@@ -31,7 +31,7 @@ class MapSelectedDialog : DialogFragment() {
                 .setNegativeButton(R.string.dialog_cancel) { dialog, id ->
                     // User cancelled the dialog
                     val a = activity as MapSelectedDialogInterface
-                    a!!.onMapSelected(false)
+                    a.onMapSelected(false)
                 }
         // Create the AlertDialog object and return it
         return builder.create()

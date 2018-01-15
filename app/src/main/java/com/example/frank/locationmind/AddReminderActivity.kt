@@ -261,7 +261,6 @@ class AddReminderActivity : AppCompatActivity(), CompoundButton.OnCheckedChangeL
                 val inStream = FileInputStream(oldPath) //读入原文件
                 val fs = FileOutputStream(newPath)//如果目录不存在要自己建目录
                 val buffer = ByteArray(1444)
-                val length: Int
                 while (byteRead != -1) {
                     byteSum += byteRead //字节数 文件大小
                     println(byteSum)

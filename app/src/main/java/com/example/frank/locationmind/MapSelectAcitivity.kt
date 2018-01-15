@@ -97,6 +97,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         mButton = findViewById<View>(R.id.SEARCHVIEW_LOCATIONSELECT) as Button
         mSearchView = findViewById<View>(R.id.SEARCH_VIEW_TEXT) as SearchView
         mProgressBar = findViewById<View>(R.id.PROGRESS_BAR) as ProgressBar
+        mProgressBar!!.visibility=View.GONE
         mListView = findViewById<View>(R.id.LISTVIEW_LOCATIONSELECT) as ListView
         mAddLocationText = findViewById<View>(R.id.TEXTSELECT) as TextView
         mAddLocationText!!.setOnClickListener {
@@ -221,7 +222,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         mListView!!.adapter = mArrayAdapter
         mListView!!.emptyView = findViewById<View>(R.id.EMPTYVIEW) as TextView
 
-        mListView!!.onItemClickListener = AdapterView.OnItemClickListener { parent, view, position, id ->
+        mListView!!.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, id ->
             Log.i("ITEMCLICK", java.lang.Double.toString(listOfLatLngPoint[position].latitude))
             //moveCameraToLocation(new LatLng(listOfLatLngPoint.get(position).getLatitude(),listOfLatLngPoint.get(position).getLongitude()),16);
             animatedMoveCameraToLocation(LatLng(listOfLatLngPoint[position].latitude, listOfLatLngPoint[position].longitude), 16f)
@@ -285,7 +286,6 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
             val query = intent.getStringExtra(SearchManager.QUERY)
             Log.i("HANDLEINTENT", query)
             doMySearch(query)
-            //mProgressBar.
         }
         if (intent.action == "com.example.frank.locationmind.map.clicked") {
 
@@ -304,6 +304,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         mPoiS.setOnPoiSearchListener(this@MapSelectAcitivity)
         mPoiS.searchPOIAsyn()
         mProgressBar!!.visibility = View.VISIBLE
+        //Thread(Runnable {  try {Thread.sleep(3000) }catch( e:InterruptedException){e.printStackTrace()} }).start()
     }
 
     //对话框处理
@@ -466,7 +467,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         val query = RegeocodeQuery(LatLonPoint(centerLat!!, centerLng!!), 200f, GeocodeSearch.AMAP)
         geocoderSearch!!.getFromLocationAsyn(query)
 
-        val marker = mAmap!!.addMarker(MarkerOptions().position(LatLng(centerLat!!, centerLng!!)).title("当前地点").snippet("DefaultMarker"))
+        mAmap!!.addMarker(MarkerOptions().position(LatLng(centerLat!!, centerLng!!)).title("当前地点").snippet("DefaultMarker"))
         listForView.clear()
         listOfLatLngPoint.clear()
         configCameraPOISearch()

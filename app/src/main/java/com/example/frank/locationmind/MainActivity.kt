@@ -13,7 +13,6 @@ import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Environment
 import android.support.design.widget.FloatingActionButton
-import android.support.v4.app.TaskStackBuilder
 import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -23,8 +22,6 @@ import android.support.v7.widget.Toolbar
 import android.support.v7.widget.helper.ItemTouchHelper
 import android.util.Log
 import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import android.widget.CheckBox
 import android.widget.CompoundButton
@@ -51,11 +48,9 @@ import java.io.InputStreamReader
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.OutputStream
-import java.nio.channels.FileChannel
-import java.nio.channels.FileLock
-import java.util.ArrayList
 
 import java.lang.System.*
+import java.util.*
 
 class MainActivity : CheckPermissionsActivity() {
     private var reminderList: ArrayList<Reminder>? = ArrayList()
@@ -140,14 +135,13 @@ class MainActivity : CheckPermissionsActivity() {
 
         toolbar!!.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                R.id.UPDATE_MENU -> writeListToFileOnThread(dataFileURI, reminderList)
                 R.id.STOP_MENU -> {
                     //点击关闭服务
-                    if (!isServiceManageStopped) {
+                    if (isMyServiceRunning(this@MainActivity, com.example.frank.locationmind.GeoFenceService::class.java)) {
                         Log.i("STOP MENU", "停止服务")
-                        if (isMyServiceRunning(this@MainActivity, com.example.frank.locationmind.GeoFenceService::class.java)) {
-                            val intent = Intent("com.example.frank.locationmind.stop.servie")
-                            localBroadcastManager!!.sendBroadcast(intent)
-                        }
+                        val intent = Intent("com.example.frank.locationmind.stop.servie")
+                        localBroadcastManager!!.sendBroadcast(intent)
                         if (null != scheduler) {
                             Log.i("STOP MENU", "scheduler 非空")
                             scheduler!!.cancelAll()
@@ -161,7 +155,6 @@ class MainActivity : CheckPermissionsActivity() {
                     }
                     invalidateOptionsMenu()//设置菜单需要重绘，会调用OnPrepareOptionMenu
                 }
-                R.id.UPDATE_MENU -> writeListToFileOnThread(dataFileURI, reminderList)
                 R.id.OTHER_MENU -> if (isMyServiceRunning(this@MainActivity, com.example.frank.locationmind.GeoFenceService::class.java)) {
                     val intent = Intent("com.example.frank.locationmind.stop.servie")
                     localBroadcastManager!!.sendBroadcast(intent)
@@ -327,20 +320,47 @@ class MainActivity : CheckPermissionsActivity() {
         scheduler!!.schedule(builder.build())
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
-        when (resultCode!!) {
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+
+        when (resultCode) {
             2501 -> {
                 val rf = data!!.extras!!.getParcelable("REMINDER") as Reminder
-                reminderList!!.add(rf!!)
+                reminderList!!.add(rf)
                 myAdapter!!.notifyDataSetChanged()
                 writeListToFileOnThread(dataFileURI, reminderList)
+                //val intentToService = Intent(this@MainActivity, GeoFenceService::class.java)
+                //intentToService.putExtra("FROM", "NEW PLACE")
+                //startService(intentToService)
+                //避免提醒文件写入未完成导致服务加载不成功
+                startServiceLater(1000*5)
+            }
+        }
+
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    private fun startServiceLater(later:Long){
+
+        val timer = Timer()
+        /*
+        class TimetaskEx:TimerTask(){
+            override fun run(){
                 val intentToService = Intent(this@MainActivity, GeoFenceService::class.java)
                 intentToService.putExtra("FROM", "NEW PLACE")
                 startService(intentToService)
             }
         }
+        timer.schedule(TimetaskEx(),6000)
+        */
+        timer.schedule(object :TimerTask(){
+            override fun run(){
+                val intentToService = Intent(this@MainActivity, GeoFenceService::class.java)
+                intentToService.putExtra("FROM", "NEW PLACE")
+                startService(intentToService)
+                timer.cancel()
+        }},later)
 
-        super.onActivityResult(requestCode, resultCode, data)
+
     }
 
     //对象数组存入文件
@@ -508,6 +528,8 @@ class MainActivity : CheckPermissionsActivity() {
     }
 
 
+
+
     fun copyFileAn(oldPath: String, newPath: String) {
         try {
             var byteSum = 0
@@ -517,7 +539,7 @@ class MainActivity : CheckPermissionsActivity() {
                 val inStream = FileInputStream(oldPath) //读入原文件
                 val fs = FileOutputStream(newPath)
                 val buffer = ByteArray(1444)
-                val length: Int
+                //val length: Int
                 while (byteRead != -1) {
                     byteSum += byteRead //字节数 文件大小
                     println(byteSum)
@@ -592,3 +614,4 @@ class MainActivity : CheckPermissionsActivity() {
     }
 
 }
+
