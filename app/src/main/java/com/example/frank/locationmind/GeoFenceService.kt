@@ -39,7 +39,7 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
     private val fenceList = ArrayList<GeoFence>()
     private var reminderList = ArrayList<Reminder>()
     protected var mNMgr: NotificationManager?=null
-    private val fenceCreeatedTimeList = ArrayList<Long>()
+    private val fenceCreatedTimeList = ArrayList<Long>(Collections.nCopies(50,0L))
 
     private var mGeoFenceClient: GeoFenceClient? = null
 
@@ -118,9 +118,9 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
     //check time，after geofence created 1 minute then start notification,阻止地理围栏创建的的第一次广播
     private fun checkTimeThenNotify(str: String, position: Int){
         val currentMillis = System.currentTimeMillis()
-        Log.i("creat time",position.toString()+"----------"+fenceCreeatedTimeList[position].toString())
+        Log.i("creat time",position.toString()+"----------"+fenceCreatedTimeList[position].toString())
         Log.i("current time",currentMillis.toString())
-        val millisDiff = System.currentTimeMillis()-fenceCreeatedTimeList[position]
+        val millisDiff = System.currentTimeMillis()-fenceCreatedTimeList[position]
         Log.i("current time difference",millisDiff.toString())
         if ((millisDiff>1*60*1000) and (millisDiff<1000*60*60*24) ) {//地理围栏建立的时间在1天与1分钟之间通知，否则忽略
             sendAnNotification(str, position)
@@ -223,7 +223,7 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
                     centPoint.longitude = re.lng
                     val customeID = Integer.toString(i) + "_" + re.taskDescription
                     mGeoFenceClient!!.addGeoFence(centPoint, if (re.diameter < 500) 500f else re.diameter.toFloat(), customeID)
-                    fenceCreeatedTimeList.add(i,System.currentTimeMillis())
+                    fenceCreatedTimeList.add(i,System.currentTimeMillis())
                 }
             }
             Log.i("create fence list", "从list中加入围栏")
