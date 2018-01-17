@@ -37,10 +37,11 @@
     <!--Map Select Activity 字符串资源 -->
     <string name="search_button_text">搜索地点</string>
     <string name="dialog_fire_missiles">添加当前地点</string>
+    <string name="empty_text">暂无地点</string>
+
 
     <string name="dialog_ok">确认</string>
     <string name="dialog_cancel">取消</string>
-    <string name="title_activity_main2">Main2Activity</string>
 
 
 </resources>

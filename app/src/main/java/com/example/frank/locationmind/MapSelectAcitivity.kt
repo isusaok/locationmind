@@ -215,9 +215,11 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         mListView!!.emptyView = findViewById<View>(R.id.EMPTYVIEW) as TextView
 
         mListView!!.onItemClickListener = AdapterView.OnItemClickListener { _, _, position, id ->
+            if (listForView!!.get(position)!=null){
             Log.i("ITEMCLICK", java.lang.Double.toString(listOfLatLngPoint[position].latitude))
             //moveCameraToLocation(new LatLng(listOfLatLngPoint.get(position).getLatitude(),listOfLatLngPoint.get(position).getLongitude()),16);
             animatedMoveCameraToLocation(LatLng(listOfLatLngPoint[position].latitude, listOfLatLngPoint[position].longitude), 16f)
+            }
         }
 
         mAmap!!.setOnCameraChangeListener(this)
@@ -277,6 +279,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         handleIntent(intent)
     }
 
+    //use for searchable
     private fun handleIntent(intent: Intent) {
         if (Intent.ACTION_SEARCH == intent.action) {
             val query = intent.getStringExtra(SearchManager.QUERY)
