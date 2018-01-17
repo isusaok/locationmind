@@ -16,25 +16,27 @@
         android:layout_weight="1"
         android:visibility="gone" />
 
-    <Button
-        android:id="@+id/SEARCHVIEW_LOCATIONSELECT"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+    <ImageView
+        android:id="@+id/POINT_VIEW"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="152dp"
+        android:scaleType="fitXY"
         android:elevation="10dp"
-        android:text="@string/search_button_text" />
+        app:srcCompat="@drawable/ic_my_pri_location_black_24dp" />
 
     <SearchView
         android:id="@+id/SEARCH_VIEW_TEXT"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="64dp"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="64dp"
-        android:elevation="10dp"
-        android:text="@string/search_button_text" >
-
-    </SearchView>
+        android:layout_marginTop="8dp"
+        android:background="@color/gray_back"
+        android:elevation="4dp"
+        android:iconifiedByDefault="false"
+        android:queryHint="@string/search_hint_location" />
 
     <android.support.constraint.ConstraintLayout
         android:layout_width="match_parent"

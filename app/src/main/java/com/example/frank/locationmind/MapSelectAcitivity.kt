@@ -48,6 +48,7 @@ import java.util.Date
 class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraChangeListener, PoiSearch.OnPoiSearchListener, MapSelectedDialog.MapSelectedDialogInterface, GeocodeSearch.OnGeocodeSearchListener {
 
     private var mButton: Button? = null
+    private var mImageView:ImageView? = null
     private var mSearchView: SearchView? = null
     private var mProgressBar:ProgressBar? =null
     private var mListView: ListView? = null
@@ -94,8 +95,9 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
 
 
         setContentView(R.layout.activity_map_select_acitivity)
-        mButton = findViewById<View>(R.id.SEARCHVIEW_LOCATIONSELECT) as Button
+        //mButton = findViewById<View>(R.id.SEARCHVIEW_LOCATIONSELECT) as Button
         mSearchView = findViewById<View>(R.id.SEARCH_VIEW_TEXT) as SearchView
+        mImageView = findViewById<View>(R.id.POINT_VIEW) as ImageView
         mProgressBar = findViewById<View>(R.id.PROGRESS_BAR) as ProgressBar
         mProgressBar!!.visibility=View.GONE
         mListView = findViewById<View>(R.id.LISTVIEW_LOCATIONSELECT) as ListView
@@ -105,16 +107,6 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
             avataFilePath = "ava.png"
 
             Thread(Runnable {
-                /**
-                 * 对地图进行截屏
-                 */
-                /**
-                 * 对地图进行截屏
-                 */
-                /**
-                 * 对地图进行截屏
-                 */
-
                 /**
                  * 对地图进行截屏
                  */
@@ -257,13 +249,17 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
             isInitLoad = false
         }
 
+        /*
         mButton!!.setOnClickListener { v ->
             if (v.id == R.id.SEARCHVIEW_LOCATIONSELECT) {
                 onSearchRequested()
             }
         }
+        */
         mSearchView!!.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
+                Log.i("SearchTEXT",query)
+                doMySearch(query!!)
                 return true
             }
 
