@@ -47,7 +47,7 @@ open class CheckPermissionsActivity : AppCompatActivity(), ActivityCompat.OnRequ
      */
     private fun checkPermissions(vararg permissions: String) {
         val needRequestPermissonList = findDeniedPermissions(permissions)
-        if (null != needRequestPermissonList && needRequestPermissonList.size > 0) {
+        if (needRequestPermissonList.isNotEmpty()) {
             ActivityCompat.requestPermissions(this,
                     needRequestPermissonList.toTypedArray(),
                     PERMISSON_REQUESTCODE)
