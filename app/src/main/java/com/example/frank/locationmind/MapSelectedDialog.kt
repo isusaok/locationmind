@@ -41,7 +41,8 @@ class MapSelectedDialog : DialogFragment() {
         fun newInstance(message: String): MapSelectedDialog {
             val frag = MapSelectedDialog()
             val args = Bundle()
-            args.putString("MESSAGE", message)
+            message.let { args.putString("MESSAGE",it) }
+            //args.putString("MESSAGE", message)
             frag.arguments = args
             return frag
         }

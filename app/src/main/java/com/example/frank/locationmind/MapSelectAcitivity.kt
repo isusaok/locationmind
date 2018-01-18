@@ -6,6 +6,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.Drawable
 import android.os.Environment
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -21,14 +23,11 @@ import com.amap.api.location.AMapLocationListener
 import com.amap.api.location.DPoint
 import com.amap.api.maps2d.AMap
 import com.amap.api.maps2d.AMap.OnCameraChangeListener
+import com.amap.api.maps2d.AMap.OnMarkerClickListener
 import com.amap.api.maps2d.CameraUpdate
 import com.amap.api.maps2d.CameraUpdateFactory
 import com.amap.api.maps2d.MapView
-import com.amap.api.maps2d.model.CameraPosition
-import com.amap.api.maps2d.model.LatLng
-import com.amap.api.maps2d.model.Marker
-import com.amap.api.maps2d.model.MarkerOptions
-import com.amap.api.maps2d.model.MyLocationStyle
+import com.amap.api.maps2d.model.*
 import com.amap.api.services.core.LatLonPoint
 import com.amap.api.services.core.PoiItem
 import com.amap.api.services.geocoder.GeocodeResult
@@ -45,7 +44,8 @@ import java.text.SimpleDateFormat
 import java.util.ArrayList
 import java.util.Date
 
-class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraChangeListener, PoiSearch.OnPoiSearchListener, MapSelectedDialog.MapSelectedDialogInterface, GeocodeSearch.OnGeocodeSearchListener {
+class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraChangeListener, PoiSearch.OnPoiSearchListener, MapSelectedDialog.MapSelectedDialogInterface, GeocodeSearch.OnGeocodeSearchListener, OnMarkerClickListener {
+
 
     private var mButton: Button? = null
     private var mImageView:ImageView? = null
@@ -103,99 +103,101 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         mListView = findViewById<View>(R.id.LISTVIEW_LOCATIONSELECT) as ListView
         mAddLocationText = findViewById<View>(R.id.TEXTSELECT) as TextView
         mAddLocationText!!.setOnClickListener {
-            Log.i("click add", "点击选中的地址")
-            avataFilePath = "ava.png"
+            if (listForView.isNotEmpty()) {
+                Log.i("click add", "点击选中的地址")
+                avataFilePath = "ava.png"
 
-            Thread(Runnable {
-                /**
-                 * 对地图进行截屏
-                 */
-                mAmap!!.getMapScreenShot(object : AMap.OnMapScreenShotListener {
+                Thread(Runnable {
+                    /**
+                     * 对地图进行截屏
+                     */
+                    mAmap!!.getMapScreenShot(object : AMap.OnMapScreenShotListener {
 
 
-                    //@Override
-                    override fun onMapScreenShot(bitmap: Bitmap?) {
-                        Log.e("TAG", "回调1")
-                        if (null == bitmap) {
-                            return
-                        }
-                        try {
-
-                            // ABSPath = getFilesDir()+"/"+'avataFilePath'
-                            val fos = openFileOutput(avataFilePath, Context.MODE_PRIVATE)
-                            Log.i("click add", "点击新建文件")
-                            val b = bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                        //@Override
+                        override fun onMapScreenShot(bitmap: Bitmap?) {
+                            Log.e("TAG", "回调1")
+                            if (null == bitmap) {
+                                return
+                            }
                             try {
-                                fos.flush()
-                            } catch (e: IOException) {
+
+                                // ABSPath = getFilesDir()+"/"+'avataFilePath'
+                                val fos = openFileOutput(avataFilePath, Context.MODE_PRIVATE)
+                                Log.i("click add", "点击新建文件")
+                                val b = bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                                try {
+                                    fos.flush()
+                                } catch (e: IOException) {
+                                    e.printStackTrace()
+                                }
+
+                                try {
+                                    fos.close()
+                                } catch (e: IOException) {
+                                    e.printStackTrace()
+                                }
+
+                                val buffer = StringBuffer()
+                                if (b)
+                                    buffer.append("截屏成功 ")
+                                else {
+                                    buffer.append("截屏失败 ")
+                                }
+                                //ToastUtil.show(getApplicationContext(), buffer.toString());
+
+                            } catch (e: FileNotFoundException) {
                                 e.printStackTrace()
                             }
 
+                        }
+
+                        //@Override
+                        fun onMapScreenShot(bitmap: Bitmap?, status: Int) {
+                            Log.e("TAG", "回调2")
+
+                            if (null == bitmap) {
+                                return
+                            }
                             try {
-                                fos.close()
-                            } catch (e: IOException) {
+                                val fos = openFileOutput(avataFilePath, Context.MODE_PRIVATE)
+                                Log.i("click add", "点击新建文件")
+                                val b = bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                                try {
+                                    fos.flush()
+                                } catch (e: IOException) {
+                                    e.printStackTrace()
+                                }
+
+                                try {
+                                    fos.close()
+                                } catch (e: IOException) {
+                                    e.printStackTrace()
+                                }
+
+                                val buffer = StringBuffer()
+                                if (b)
+                                    buffer.append("截屏成功 ")
+                                else {
+                                    buffer.append("截屏失败 ")
+                                }
+                                if (status != 0)
+                                    buffer.append("地图渲染完成，截屏无网格")
+                                else {
+                                    buffer.append("地图未渲染完成，截屏有网格")
+                                }
+                                //ToastUtil.show(getApplicationContext(), buffer.toString());
+
+                            } catch (e: FileNotFoundException) {
                                 e.printStackTrace()
                             }
 
-                            val buffer = StringBuffer()
-                            if (b)
-                                buffer.append("截屏成功 ")
-                            else {
-                                buffer.append("截屏失败 ")
-                            }
-                            //ToastUtil.show(getApplicationContext(), buffer.toString());
-
-                        } catch (e: FileNotFoundException) {
-                            e.printStackTrace()
                         }
+                    })
+                }).start()
 
-                    }
-
-                    //@Override
-                    fun onMapScreenShot(bitmap: Bitmap?, status: Int) {
-                        Log.e("TAG", "回调2")
-
-                        if (null == bitmap) {
-                            return
-                        }
-                        try {
-                            val fos = openFileOutput(avataFilePath, Context.MODE_PRIVATE)
-                            Log.i("click add", "点击新建文件")
-                            val b = bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
-                            try {
-                                fos.flush()
-                            } catch (e: IOException) {
-                                e.printStackTrace()
-                            }
-
-                            try {
-                                fos.close()
-                            } catch (e: IOException) {
-                                e.printStackTrace()
-                            }
-
-                            val buffer = StringBuffer()
-                            if (b)
-                                buffer.append("截屏成功 ")
-                            else {
-                                buffer.append("截屏失败 ")
-                            }
-                            if (status != 0)
-                                buffer.append("地图渲染完成，截屏无网格")
-                            else {
-                                buffer.append("地图未渲染完成，截屏有网格")
-                            }
-                            //ToastUtil.show(getApplicationContext(), buffer.toString());
-
-                        } catch (e: FileNotFoundException) {
-                            e.printStackTrace()
-                        }
-
-                    }
-                })
-            }).start()
-
-            showMapSelectedDialog(listForView[0] + "附近")
+                showMapSelectedDialog(listForView[0] + "附近")
+            }
         }
 
 
@@ -352,11 +354,9 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
     override fun onDestroy() {
         super.onDestroy()
         //在activity执行onDestroy时执行mMapView.onDestroy()，销毁地图
-        mMapView!!.onDestroy()
+        mMapView?.onDestroy()
         //销毁定位对象
-        if (null != aMapLocationClient) {
-            aMapLocationClient!!.onDestroy()
-        }
+        aMapLocationClient?.let { it.onDestroy() }
     }
 
     override fun onResume() {
@@ -421,14 +421,19 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
         if (listForView.size > 0) {
             LocationStr = listForView[0]
             mAddLocationText!!.text = listForView[0]
-            //addMarksOnMap(listOfLatLngPoint);
+            addMarksOnMap(listOfLatLngPoint);
             mArrayAdapter!!.notifyDataSetChanged()
         }
     }
 
     private fun addMarksOnMap(list: ArrayList<LatLonPoint>) {
-        for (latLonPoint in list) {
-            mAmap!!.addMarker(MarkerOptions().position(LatLng(latLonPoint.latitude, latLonPoint.longitude)).title("S"))
+        for (i in listForView.indices) {
+            var markerOpinion = MarkerOptions()
+            markerOpinion!!.position(LatLng(listOfLatLngPoint[i].latitude,listOfLatLngPoint[i].longitude))
+            markerOpinion!!.title(listForView.get(i))
+            markerOpinion!!.icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory
+                    .decodeResource(getResources(),R.drawable.ic_pin_drop_pri_24dp)))
+            mAmap!!.addMarker(markerOpinion)
             //final Marker marker = mAmap.addMarker(new MarkerOptions().position(new LatLng(centerLat,centerLng)).title("当前地点").snippet("DefaultMarker"));
         }
     }
@@ -513,5 +518,11 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
     //address to Latlng
     override fun onGeocodeSearched(geocodeResult: GeocodeResult, i: Int) {
 
+    }
+
+    override fun onMarkerClick(p0: Marker?): Boolean {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        val addDes = p0?.let { it.title }
+        return true
     }
 }
