@@ -11,10 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
-import android.os.Handler
-import android.os.IBinder
-import android.os.Message
-import android.os.SystemClock
+import android.os.*
 import android.util.Log
 import android.widget.Toast
 
@@ -192,6 +189,12 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
         //创建GeoFence
         setUpGeoFence()
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            val noti = createAnNotification("服务运行中")
+            startForeground(101,noti)
+        }
+
+
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -286,19 +289,37 @@ class GeoFenceService : Service(), GeoFenceListener, AMapLocationListener {
         mNMgr!!.notify(NOTIFY_MSG, noti)
     }
 
+    fun createAnNotification(msg:String):Notification{
+        //val NOTIFICATION_ID_LOCATION: Int
+        val builder = Notification.Builder(this)
+
+        builder.setContentTitle("Location Mind")
+        builder.setContentText(msg)
+        builder.setSmallIcon(R.mipmap.ic_launcher)
+        builder.setWhen(System.currentTimeMillis())
+
+        val intent = Intent(baseContext, MainActivity::class.java)
+        intent.action = "com.example.frank.location.notify.keepalive"
+        val pdin = PendingIntent.getActivity(baseContext, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        builder.setContentIntent(pdin)
+
+        return builder.build()
+    }
+
 
     //在服务即将销毁之前设置3分钟之后再次启动服务
     override fun onDestroy() {
-        super.onDestroy()
         //地理围栏清除
         mGeoFenceClient!!.removeGeoFence()
         //围栏监听服务清除
         this.unregisterReceiver(mGeoFenceReceiver)
         //围栏清除
         fenceList.clear()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) stopForeground(true)
         //5分钟后重新启动
         //setAlarmForService(5);
         Toast.makeText(this, "服务已经停止", Toast.LENGTH_LONG).show()
+        super.onDestroy()
     }
 
     //对象数组存入文件

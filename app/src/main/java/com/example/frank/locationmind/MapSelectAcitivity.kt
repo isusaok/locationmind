@@ -500,7 +500,7 @@ class MapSelectAcitivity : AppCompatActivity(), AMapLocationListener, OnCameraCh
     override fun onMarkerClick(p0: Marker?): Boolean {
         val addDes = p0?.let { it.title }
         Log.i("MARKER CLICK",addDes)
-        animatedMoveCameraToLocation(LatLng(p0?.position!!.latitude,p0?.position.longitude),19F)
+        animatedMoveCameraToLocation(LatLng(p0!!.position!!.latitude,p0.position.longitude),19F)
         return true
     }
 }

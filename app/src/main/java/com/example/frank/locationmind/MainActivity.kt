@@ -277,9 +277,10 @@ class MainActivity : CheckPermissionsActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
-        val update_item_text = if (isServiceManageStopped) "开启服务" else "关闭服务"
+        val isServicing = isMyServiceRunning(this@MainActivity, com.example.frank.locationmind.GeoFenceService::class.java)
+        val update_item_text = if (isServicing) "关闭服务" else "开启服务"
         menu.findItem(R.id.STOP_MENU).title = update_item_text
-        menu.findItem(R.id.OTHER_MENU).title = if (isMyServiceRunning(this@MainActivity, com.example.frank.locationmind.GeoFenceService::class.java)) "服务运行中" else "服务已停止"
+        menu.findItem(R.id.OTHER_MENU).title = if (isServicing) "服务运行中" else "服务已停止"
         return super.onPrepareOptionsMenu(menu)
     }
 
